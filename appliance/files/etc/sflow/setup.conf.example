@@ -1,0 +1,9 @@
+# Unattended first-boot setup: copy to /etc/sflow/setup.conf before the first boot.
+NETWORK=dhcp                 # or static
+#ADDRESS=192.168.10.50/24    # static only
+#GATEWAY=192.168.10.1
+#DNS=192.168.10.1,1.1.1.1
+HOSTNAME_NEW=sflow-analytics
+TIMEZONE=Europe/Paris
+NTP="pool.ntp.org"
+#SFLOW_PASSWORD='...'        # system account "sflow" (locked when unset)

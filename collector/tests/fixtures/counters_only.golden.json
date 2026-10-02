@@ -1,0 +1,48 @@
+{
+  "result": {
+    "meta": {
+      "received_at": "2026-09-28T14:20:31.123Z",
+      "exporter_ip": "192.0.2.10",
+      "agent_ip": "10.0.0.10",
+      "agent_sub_id": 0,
+      "sequence_number": 6,
+      "uptime_ms": 3600000
+    },
+    "version": 5,
+    "flows": null,
+    "counters": [
+      {
+        "timestamp": "2026-09-28T14:20:31.123Z",
+        "exporter_ip": "192.0.2.10",
+        "agent_ip": "10.0.0.10",
+        "agent_sub_id": 0,
+        "ifindex": 24,
+        "if_type": 6,
+        "speed_bps": 10000000000,
+        "direction": 1,
+        "admin_up": true,
+        "oper_up": true,
+        "in_octets": 123456789,
+        "in_ucast_pkts": 1000,
+        "in_multicast_pkts": 0,
+        "in_broadcast_pkts": 0,
+        "in_discards": 0,
+        "in_errors": 1,
+        "out_octets": 987654321,
+        "out_ucast_pkts": 2000,
+        "out_multicast_pkts": 0,
+        "out_broadcast_pkts": 0,
+        "out_discards": 0,
+        "out_errors": 0
+      }
+    ],
+    "samples": 1,
+    "flow_samples": 0,
+    "counter_samples": 1,
+    "drop_samples": 0,
+    "unsupported_samples": 0,
+    "unsupported_records": 0,
+    "sample_errors": 0,
+    "truncated": false
+  }
+}

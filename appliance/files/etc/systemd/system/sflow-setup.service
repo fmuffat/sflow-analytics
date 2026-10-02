@@ -1,0 +1,21 @@
+[Unit]
+Description=sFlow Analytics first-boot setup (console assistant on tty1)
+After=network-online.target sflow-issue.service
+Wants=network-online.target
+Before=getty@tty1.service
+ConditionPathExists=!/etc/sflow/configured
+
+[Service]
+Type=oneshot
+Environment=SFLOW_TTY=/dev/tty1
+ExecStart=/usr/local/sbin/sflow-setup
+TTYPath=/dev/tty1
+StandardInput=tty
+StandardOutput=tty
+TTYReset=yes
+TTYVHangup=yes
+RemainAfterExit=no
+TimeoutStartSec=infinity
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,122 @@
+#!/bin/bash
+# First-boot setup of the sFlow Analytics appliance, on the VM console (tty1).
+# Asks network, host name, time zone, NTP and the password of the "sflow" system account,
+# prepares the data disk, then installs the application from /opt/sflow-package.
+# Runs once (state file /etc/sflow/configured). Unattended mode for tests and mass
+# deployment: put the answers in /etc/sflow/setup.conf (see the template in that directory).
+set -u
+. /usr/local/lib/sflow/common.sh
+mkdir -p "$SFLOW_STATE"
+[ -f "$SFLOW_STATE/configured" ] && exit 0
+# The systemd unit runs it on tty1 (SFLOW_TTY); "sudo sflow-setup" works from any terminal.
+# whiptail draws on stderr when its answer is captured: stderr must stay the terminal.
+if [ -n "${SFLOW_TTY:-}" ]; then exec <"$SFLOW_TTY" >"$SFLOW_TTY" 2>&1; fi
+export TERM=linux NEWT_COLORS='root=,black window=,lightgray border=black,lightgray title=black,lightgray button=white,red actbutton=white,red'
+log "setup started"
+
+# The system disk of the OVA is small; use all of its virtual size.
+grow_root() {
+  local part disk num
+  part="$(findmnt -no SOURCE /)"; disk="/dev/$(lsblk -no PKNAME "$part")"; num="${part##*[!0-9]}"
+  growpart "$disk" "$num" >>"$LOG" 2>&1 && resize2fs "$part" >>"$LOG" 2>&1
+}
+
+# Data disk: the first whole disk of 10 GB or more without partition table nor file system,
+# other than the system disk (floppy and CD-ROM drives of the VM are ignored).
+prepare_data_disk() {
+  local sys d
+  sys="$(lsblk -no PKNAME "$(findmnt -no SOURCE /)")"
+  for d in $(lsblk -dbno NAME,TYPE,SIZE | awk '$2=="disk" && $3>=10737418240 {print $1}'); do
+    [ "$d" = "$sys" ] && continue
+    [ -n "$(lsblk -no FSTYPE "/dev/$d" | tr -d '[:space:]')" ] && continue
+    [ "$(lsblk -no NAME "/dev/$d" | wc -l)" -gt 1 ] && continue
+    mkfs.ext4 -q -L sflow-data "/dev/$d" >>"$LOG" 2>&1 || { log "mkfs failed on /dev/$d"; continue; }
+    mkdir -p /data
+    echo "UUID=$(blkid -s UUID -o value "/dev/$d") /data ext4 defaults,noatime,nofail 0 2" >>/etc/fstab
+    systemctl daemon-reload; mount /data || return 1
+    mkdir -p /etc/docker /etc/systemd/system/docker.service.d
+    echo '{ "data-root": "/data/docker", "log-driver": "json-file", "log-opts": { "max-size": "20m", "max-file": "5" } }' >/etc/docker/daemon.json
+    printf '[Unit]\nRequiresMountsFor=/data\n' >/etc/systemd/system/docker.service.d/10-data-disk.conf
+    systemctl daemon-reload
+    log "data disk /dev/$d -> /data"
+    return 0
+  done
+  log "no empty data disk found: data on the system disk"
+  return 2
+}
+
+if [ -f "$SFLOW_STATE/setup.conf" ]; then
+  # shellcheck disable=SC1091
+  . "$SFLOW_STATE/setup.conf"
+  UNATTENDED=1
+else
+  UNATTENDED=0
+fi
+
+clear
+if [ "$UNATTENDED" = 0 ]; then
+  info "Welcome to the sFlow Analytics appliance.\n\nThis assistant configures the network, the host name, the time zone and the password of the system account, then installs the application.\n\nIt takes about 3 minutes." 14
+  until configure_network; do info "The network must be configured to continue." 8; done
+  HOSTNAME_NEW=$(ask "Host name" "sflow-analytics") || HOSTNAME_NEW=sflow-analytics
+  while :; do
+    TZ_NEW=$(ask "Time zone (e.g. Europe/Paris, America/New_York, UTC)" "Europe/Paris") || TZ_NEW=UTC
+    [ -f "/usr/share/zoneinfo/$TZ_NEW" ] && break
+    info "Unknown time zone: $TZ_NEW" 8
+  done
+  NTP_NEW=$(ask "NTP servers (space separated; empty = Ubuntu default)" "pool.ntp.org") || NTP_NEW=""
+  while :; do
+    P1=$(askpw "Password of the system account \"sflow\" (console and SSH; 10 characters minimum)") || continue
+    P2=$(askpw "Same password again") || continue
+    [ "$P1" = "$P2" ] && [ "${#P1}" -ge 10 ] && break
+    info "The passwords differ or are shorter than 10 characters." 8
+  done
+  SFLOW_PASSWORD="$P1"; unset P1 P2
+else
+  if [ "${NETWORK:-dhcp}" = static ]; then
+    nic="$(primary_nic)"
+    printf 'network:\n  version: 2\n  ethernets:\n    %s:\n      dhcp4: false\n      addresses: [%s]\n      routes: [{to: default, via: %s}]\n      nameservers: {addresses: [%s]}\n' \
+      "$nic" "$ADDRESS" "$GATEWAY" "${DNS:-$GATEWAY}" >/etc/netplan/50-sflow.yaml
+    chmod 600 /etc/netplan/50-sflow.yaml; rm -f /etc/netplan/01-sflow-dhcp.yaml; netplan apply >>"$LOG" 2>&1; sleep 3
+  fi
+  HOSTNAME_NEW="${HOSTNAME_NEW:-sflow-analytics}"; TZ_NEW="${TIMEZONE:-UTC}"; NTP_NEW="${NTP:-}"
+fi
+
+echo; echo "  Configuring the system..."
+# Files written directly: on the first boot systemd-hostnamed / timedated refuse the change
+# ("Not allowed to update /etc/hostname", "Access denied").
+echo "$HOSTNAME_NEW" >/etc/hostname
+hostname "$HOSTNAME_NEW"
+sed -i "s/^127\.0\.1\.1.*/127.0.1.1 $HOSTNAME_NEW/" /etc/hosts; grep -q '^127\.0\.1\.1' /etc/hosts || echo "127.0.1.1 $HOSTNAME_NEW" >>/etc/hosts
+ln -sf "/usr/share/zoneinfo/$TZ_NEW" /etc/localtime
+echo "$TZ_NEW" >/etc/timezone
+if [ -n "$NTP_NEW" ]; then
+  mkdir -p /etc/systemd/timesyncd.conf.d
+  printf '[Time]\nNTP=%s\n' "$NTP_NEW" >/etc/systemd/timesyncd.conf.d/sflow.conf
+  systemctl restart systemd-timesyncd
+fi
+if [ -n "${SFLOW_PASSWORD:-}" ]; then
+  echo "sflow:$SFLOW_PASSWORD" | chpasswd && passwd -u sflow >/dev/null
+  unset SFLOW_PASSWORD
+fi
+log "host=$HOSTNAME_NEW tz=$TZ_NEW ntp=$NTP_NEW"
+
+echo "  Preparing the disks..."
+grow_root
+prepare_data_disk || true
+systemctl enable --now containerd docker >>"$LOG" 2>&1
+
+echo "  Installing sFlow Analytics (about 2 minutes)..."
+if (cd "$SFLOW_PKG" && SFLOW_DIR="$SFLOW_DIR" SFLOW_WAIT=1200 ./install.sh) >>"$LOG" 2>&1; then
+  rm -f "$SFLOW_PKG/images.tar.gz"   # loaded; frees ~300 MB on the system disk
+  touch "$SFLOW_STATE/configured"
+  /usr/local/sbin/sflow-issue
+  log "setup done"
+  IP="$(current_ip)"
+  MSG="sFlow Analytics is ready.\n\nWeb interface:  https://$IP/\nUser:           admin\nPassword:       sflow\n                (a new one is required at first sign-in:\n                 sign in now, before exposing the appliance)\n\nSend sFlow to $IP, UDP port 6343. RUCKUS ICX:\n  sflow destination $IP\n  sflow enable\n  interface ethernet 1/1/1 to 1/1/48\n   sflow forwarding\n\nConsole menu: log in as \"sflow\", then: sudo sflow-console"
+  [ "$UNATTENDED" = 0 ] && info "$MSG" 24
+else
+  log "install failed"
+  info "The installation failed. Details: $LOG\nLog in as \"sflow\" and run: sudo sflow-setup" 10
+fi
+clear
+exit 0

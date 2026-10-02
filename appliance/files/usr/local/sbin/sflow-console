@@ -1,0 +1,38 @@
+#!/bin/bash
+# sFlow Analytics appliance console menu:  sudo sflow-console
+set -u
+. /usr/local/lib/sflow/common.sh
+[ "$(id -u)" -eq 0 ] || exec sudo "$0" "$@"
+export TERM="${TERM:-linux}"
+while :; do
+  IP="$(current_ip)"
+  c=$(whiptail --title "$TITLE" --menu "Web interface: https://$IP/\nHost: $(hostname)   Version: $(cat $SFLOW_DIR/VERSION 2>/dev/null)" 20 72 10 \
+    status   "Application status" \
+    network  "Change the network configuration" \
+    password "Initial admin password of the web interface" \
+    reset    "Reset the web admin password (forgotten password)" \
+    restart  "Restart the application" \
+    shell    "Open a shell (exit to come back)" \
+    reboot   "Reboot the appliance" \
+    poweroff "Shut down the appliance" \
+    quit     "Leave this menu" 3>&1 1>&2 2>&3) || exit 0
+  case "$c" in
+    status)
+      out="$(cd "$SFLOW_DIR" && docker compose ps --format '{{.Service}}: {{.State}} {{.Status}}' 2>&1)"
+      h="$(curl -sk -o /dev/null -w '%{http_code}' https://127.0.0.1/api/v1/health)"
+      info "Services:\n$out\n\nWeb/API health: $( [ "$h" = 200 ] && echo OK || echo "NOT OK ($h)")\nDisk: $(df -h /data 2>/dev/null | awk 'NR==2{print $3" used of "$2" on /data"}')" 20 ;;
+    network)
+      configure_network && refresh_certificate && /usr/local/sbin/sflow-issue && info "New address: https://$(current_ip)/" 8 ;;
+    password)
+      info "Initial password of the web user \"admin\":\n\n  sflow\n\n(valid until the first sign-in, which requires a new one;\nforgotten password: option \"reset\")" 12 ;;
+    reset)
+      yesno "Generate a new password for the web user \"admin\"? Its sessions are closed." || continue
+      out="$(cd "$SFLOW_DIR" && docker compose exec -T api python -m app.users reset-password admin </dev/null 2>&1)"
+      info "$out\n\n(to change at next sign-in)" 12 ;;
+    restart) (cd "$SFLOW_DIR" && docker compose restart) >/dev/null 2>&1; info "Application restarted." 8 ;;
+    shell)   clear; echo "Type 'exit' to come back to the menu."; bash -l ;;
+    reboot)  yesno "Reboot now?" && reboot ;;
+    poweroff) yesno "Shut down now?" && poweroff ;;
+    quit)    clear; exit 0 ;;
+  esac
+done

@@ -1,0 +1,39 @@
+<!-- ClickHouse server settings for the sFlow appliance (small VM, bounded disk). -->
+<clickhouse>
+    <!-- IPv4 only inside the container (avoids IPv6 listen warnings). -->
+    <listen_host>0.0.0.0</listen_host>
+
+    <logger>
+        <level>warning</level>
+        <size>100M</size>
+        <count>3</count>
+    </logger>
+
+    <!-- Leave room for the collector and the OS on a 8 GB VM. -->
+    <max_server_memory_usage_to_ram_ratio>0.5</max_server_memory_usage_to_ram_ratio>
+    <mark_cache_size>268435456</mark_cache_size>
+    <uncompressed_cache_size>0</uncompressed_cache_size>
+
+    <!-- System logs can silently fill the disk: keep the useful ones short, drop the rest. -->
+    <query_log>
+        <ttl>event_date + INTERVAL 3 DAY DELETE</ttl>
+    </query_log>
+    <part_log>
+        <ttl>event_date + INTERVAL 3 DAY DELETE</ttl>
+    </part_log>
+    <trace_log remove="1"/>
+    <text_log remove="1"/>
+    <metric_log remove="1"/>
+    <asynchronous_metric_log remove="1"/>
+    <query_thread_log remove="1"/>
+    <query_views_log remove="1"/>
+    <processors_profile_log remove="1"/>
+    <opentelemetry_span_log remove="1"/>
+    <session_log remove="1"/>
+    <latency_log remove="1"/>
+    <error_log remove="1"/>
+    <query_metric_log remove="1"/>
+    <blob_storage_log remove="1"/>
+    <backup_log remove="1"/>
+    <s3queue_log remove="1"/>
+</clickhouse>

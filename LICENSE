@@ -1,0 +1,55 @@
+sFlow Analytics
+Copyright (c) 2026 Frédéric Muffat Es Jacques. All rights reserved.
+
+1. Ownership
+
+The software, including its source code, documentation, build scripts, container images,
+installation packages and virtual appliance (together, the "Software"), is the exclusive
+property of the copyright holder. Except for the limited permission in section 2, no right or
+license is granted, whether expressly, by implication or otherwise.
+
+2. Permission to use the published releases
+
+You may, free of charge, download the installation packages and virtual appliances published
+by the copyright holder in the "Releases" section of this repository, install them, and use
+them to collect and analyze the network traffic of networks you operate or are authorized to
+operate, including on behalf of customers.
+
+3. Restrictions
+
+Unless you have obtained the prior written permission of the copyright holder, you may not:
+  a) copy, modify, adapt, translate or create derivative works of the source code;
+  b) sell, rent, lease, sublicense, or otherwise distribute the Software or any part of it,
+     or include it in another product or service offered to third parties;
+  c) remove or alter any copyright, trademark or license notice.
+Viewing the source code in this repository and reporting issues or suggestions is welcome.
+
+4. Trademarks
+
+RUCKUS, ICX, SmartZone and RUCKUS One are trademarks of their respective owner(s). The
+Software is an independent tool; it is not a RUCKUS product, is not supported by RUCKUS, and is
+not published, endorsed by, or affiliated with RUCKUS Networks, Belden, or their affiliates.
+Other names may be trademarks of their respective owners.
+
+5. Third-party components
+
+The Software uses third-party open source components (for example ClickHouse, Go and Python
+libraries, React, nginx, Ubuntu). Each of them remains subject to its own license, which this
+license does not change.
+
+6. No warranty
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
+BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE AND
+NON-INFRINGEMENT. TRAFFIC VOLUMES SHOWN BY THE SOFTWARE ARE ESTIMATES BASED ON SAMPLING.
+
+7. Limitation of liability
+
+IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, INCLUDING ANY LOSS OF DATA, SERVICE
+INTERRUPTION OR NETWORK INCIDENT, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+8. Termination
+
+The permission in section 2 ends automatically if you do not comply with this license.

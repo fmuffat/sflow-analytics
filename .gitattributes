@@ -1,0 +1,15 @@
+# Files run or read on Linux must keep LF line endings, even on a Windows checkout.
+*.sh            text eol=lf
+*.py            text eol=lf
+*.mjs           text eol=lf
+*.yml           text eol=lf
+*.yaml          text eol=lf
+*.conf          text eol=lf
+Dockerfile      text eol=lf
+appliance/**    text eol=lf
+packaging/**    text eol=lf
+nginx/**        text eol=lf
+*.png           binary
+*.gz            binary
+*.bin           binary
+*.pcap          binary

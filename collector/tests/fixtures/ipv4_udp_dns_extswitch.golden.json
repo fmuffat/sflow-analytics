@@ -1,0 +1,50 @@
+{
+  "result": {
+    "meta": {
+      "received_at": "2026-09-28T14:20:31.123Z",
+      "exporter_ip": "192.0.2.10",
+      "agent_ip": "10.0.0.10",
+      "agent_sub_id": 0,
+      "sequence_number": 2,
+      "uptime_ms": 3600000
+    },
+    "version": 5,
+    "flows": [
+      {
+        "timestamp": "2026-09-28T14:20:31.123Z",
+        "exporter_ip": "192.0.2.10",
+        "agent_ip": "10.0.0.10",
+        "agent_sub_id": 0,
+        "sample_sequence": 2,
+        "source_id_type": 0,
+        "source_id_index": 12,
+        "input_ifindex": 12,
+        "output_ifindex": 48,
+        "src_mac": "00:aa:bb:cc:dd:ee",
+        "dst_mac": "00:11:22:33:44:55",
+        "ether_type": 2048,
+        "vlan": 20,
+        "ip_version": 4,
+        "src_ip": "10.20.30.43",
+        "dst_ip": "10.40.50.53",
+        "ip_protocol": 17,
+        "src_port": 40000,
+        "dst_port": 53,
+        "tcp_flags": null,
+        "sampled_packet_size": 86,
+        "sampling_rate": 512,
+        "estimated_bytes": 44032,
+        "estimated_packets": 512
+      }
+    ],
+    "counters": null,
+    "samples": 1,
+    "flow_samples": 1,
+    "counter_samples": 0,
+    "drop_samples": 0,
+    "unsupported_samples": 0,
+    "unsupported_records": 0,
+    "sample_errors": 0,
+    "truncated": false
+  }
+}
