@@ -1,0 +1,19 @@
+#!/bin/bash
+# Writes the console welcome screen (/etc/issue) with the current address. Run at every boot.
+. /usr/local/lib/sflow/common.sh
+ssh-keygen -A >/dev/null 2>&1   # host keys are created per appliance on first boot
+for i in $(seq 1 20); do IP="$(current_ip)"; [ -n "$IP" ] && break; sleep 1; done
+V="$(cat "$SFLOW_DIR/VERSION" 2>/dev/null || cat "$SFLOW_PKG/VERSION" 2>/dev/null)"
+{
+  echo
+  echo "  sFlow Analytics $V appliance - \n"
+  echo
+  if [ -f "$SFLOW_STATE/configured" ]; then
+    echo "  Web interface   https://${IP:-<no address>}/"
+    echo "  sFlow           send to ${IP:-<no address>} UDP 6343"
+    echo "  Console menu    log in as \"sflow\", then: sudo sflow-console"
+  else
+    echo "  Not configured yet: the setup assistant runs on this console (tty1)."
+  fi
+  echo
+} >/etc/issue

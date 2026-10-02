@@ -1,0 +1,14 @@
+.env
+/bin/
+/captures/
+*.test
+*.out
+collector/internal/decoder/testdata/fuzz/
+.DS_Store
+/screenshots/
+/docs/local/
+node_modules/
+dist/
+__pycache__/
+.pytest_cache/
+/backups/
