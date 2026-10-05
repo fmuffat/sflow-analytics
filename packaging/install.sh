@@ -52,6 +52,13 @@ ok "$(docker --version | cut -d, -f1), $(docker compose version --short 2>/dev/n
 UPGRADE=0
 [ -f "$DIR/.env" ] && UPGRADE=1
 if [ "$UPGRADE" = 1 ]; then
+  # Keep the project name and ports of the existing installation (e.g. when started by the updater).
+  for k in SFLOW_PROJECT HTTPS_PORT HTTP_PORT SFLOW_PORT; do
+    v="$(grep -E "^$k=" "$DIR/.env" | tail -1 | cut -d= -f2-)"
+    [ -n "$v" ] && export "$k=$v"
+  done
+fi
+if [ "$UPGRADE" = 1 ]; then
   say "Existing installation found ($(grep '^APP_VERSION=' "$DIR/.env" | cut -d= -f2)): upgrade to $VERSION, data and settings kept"
 else
   free_gb=$(df -BG --output=avail "$(dirname "$DIR")" | tail -1 | tr -dc 0-9)
@@ -78,6 +85,9 @@ install -m 755 "$PKG/backup.sh" "$DIR/backup.sh"
 install -m 644 "$PKG/QUICKSTART.md" "$DIR/QUICKSTART.md"
 [ -f "$PKG/LICENSE" ] && install -m 644 "$PKG/LICENSE" "$DIR/LICENSE"
 install -m 644 "$PKG/VERSION" "$DIR/VERSION"
+install -m 755 "$PKG/updater.sh" "$DIR/updater.sh"
+# Update requests from the web interface (written by the API, uid 10001; read by the updater).
+install -d -m 750 "$DIR/updates" && chown 10001:10001 "$DIR/updates"
 
 IP="$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src") print $(i+1)}' | head -1)"
 IP="${IP:-$(hostname -I | awk '{print $1}')}"
@@ -122,6 +132,35 @@ net.core.rmem_max = 33554432
 net.core.rmem_default = 8388608
 EOF
 sysctl -q --system >/dev/null 2>&1 || true
+
+# Host-side updater: runs updater.sh when the web interface writes updates/request.
+UNIT="sflow-update-${SFLOW_PROJECT:-sflow-analytics}"
+cat > "/etc/systemd/system/$UNIT.path" <<EOF
+[Unit]
+Description=sFlow Analytics: watch for update requests from the web interface ($DIR)
+
+[Path]
+PathExists=$DIR/updates/request
+Unit=$UNIT.service
+
+[Install]
+WantedBy=multi-user.target
+EOF
+cat > "/etc/systemd/system/$UNIT.service" <<EOF
+[Unit]
+Description=sFlow Analytics: install the requested version ($DIR)
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=$DIR/updater.sh
+TimeoutStartSec=3600
+EOF
+systemctl daemon-reload
+systemctl enable --now "$UNIT.path" >/dev/null 2>&1 || say "warning: could not enable the updater ($UNIT.path); updates from the web interface are unavailable"
+printf '{"updater": "%s", "version": "%s", "dir": "%s"}
+' "$UNIT" "$VERSION" "$DIR" > "$DIR/updates/agent.json"
+chmod 644 "$DIR/updates/agent.json"
 
 # --- start -------------------------------------------------------------------------------
 say "Starting"

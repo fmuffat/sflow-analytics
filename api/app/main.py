@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 
 from .config import get_settings
 from . import auth, security
-from .routes import admin, alerts, certificate, enrichment, groups, health, history, inventory, names, traffic, users, utilization
+from .routes import admin, alerts, certificate, updates, enrichment, groups, health, history, inventory, names, traffic, users, utilization
 
 settings = get_settings()
 
@@ -28,7 +28,7 @@ app = FastAPI(
 app.include_router(health.public_router, prefix="/api/v1")
 app.include_router(auth.router, prefix="/api/v1")
 for r in (health.router, inventory.router, traffic.router, utilization.router, admin.router, enrichment.router,
-          names.router, groups.router, history.router, users.router, alerts.router, certificate.router):
+          names.router, groups.router, history.router, users.router, alerts.router, certificate.router, updates.router):
     app.include_router(r, prefix="/api/v1", dependencies=[Depends(auth.require_ready_user)])
 
 

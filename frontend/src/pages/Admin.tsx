@@ -6,6 +6,7 @@ import { useCollectorStatus } from "../hooks/queries";
 import { DataTable } from "../components/DataTable";
 import { Panel, QueryView, Tabs } from "../components/ui";
 import { CertificatePanel } from "../components/Certificate";
+import { UpdatesPanel } from "../components/Updates";
 import { UsersAdmin } from "./Users";
 import { DnsPanel } from "./Hosts";
 import { ChangePassword } from "./Login";
@@ -71,6 +72,9 @@ function SystemTab() {
   const collector = useCollectorStatus();
   return (
     <>
+      <div style={{ marginBottom: 12 }}>
+        <UpdatesPanel />
+      </div>
       <div className="grid two">
         <Panel title="General" note="set in .env; restart the stack to change">
           <QueryView q={config}>

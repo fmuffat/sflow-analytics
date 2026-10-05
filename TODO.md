@@ -100,9 +100,34 @@ The repository must be publishable at any time without cleanup. No remote/push u
 - [ ] P1 Alerts page + badge in the navigation; alert → link to the filtered explorer/interface view
 
 ## M10 — Reporting (needs M6 worker, uses M8 groups)
-- [ ] P2 Scheduled PDF/CSV reports (daily/weekly) per site, group or uplink: top talkers, services,
-      utilization with 95th percentile; e-mailed or downloadable
+- [ ] P1 **Reports** (requested 2026-10-05): PDF and Excel (.xlsx), on demand and scheduled
+      (daily / weekly / monthly), sent by e-mail (reuses the SMTP channel of the alerts) and kept
+      for download in the UI
+  - [ ] Report definitions: name, period, scope (all, switches, interface group, IP group),
+        sections, recipients, schedule (e.g. Monday 08:00, viewer time zone)
+  - [ ] Sections: summary (volume, average/peak, vs previous period), uplink / interface
+        utilization (avg, 95th percentile, peak, discards), top talkers and destinations, top
+        applications and protocols, top conversations, trends vs previous week/month,
+        alerts of the period, broadcast storms
+  - [ ] PDF: cover, charts, tables, company name/logo option; Excel: one sheet per section with
+        raw numbers (for customers who build their own charts)
+  - [ ] Worker job generating and e-mailing the reports; history of sent reports with download
+  - [ ] Read-only users can download reports; administrators manage definitions
 - [ ] P3 Saved views and customizable dashboards (widgets chosen per user)
+
+## M12 — In-app updates (requested 2026-10-05)
+- [x] P1 **"A new version is available"** in Administration → System: the worker checks the
+      GitHub Releases of fmuffat/sflow-analytics once a day (can be disabled; no data sent), shows
+      the version and its release notes
+- [x] P1 **Update from the UI** (administrators; upload for offline sites still to do): download the release package (or upload it for
+      sites without Internet access), verify its SHA-256, **backup first** (backup.sh), then
+      upgrade; progress and log shown in the UI; the "new version" banner then reloads the pages
+- [x] P1 Updater design: a small host-side service (systemd unit installed by install.sh / the
+      OVA) that the API asks to run `install.sh` of the new package; the API itself never gets
+      the Docker socket. Data volumes and .env are kept, as with a manual upgrade
+- [ ] P2 Rollback to the previous version (images kept until the next update) and a health check
+      after the upgrade (automatic rollback if the web interface does not come back)
+- [ ] P2 Same in the console menu of the appliance (`sflow-console` → Update)
 
 ## M11 — Later (P3)
 - [ ] GeoIP and ASN enrichment for internet traffic (country, provider)

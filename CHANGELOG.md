@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.16.0] - 2026-10-05 — Updates from the web interface
+
+### Added
+- **New version detection**: the worker reads the latest release on GitHub once a day (can be
+  disabled; nothing about the appliance is sent). Administration → System shows the installed
+  and latest versions, the release notes and how to upgrade; administrators see
+  "↑ x.y.z available" next to the version in the navigation. API `/admin/updates`.
+- **Update from the web interface** (administrators): "Update now" asks the host-side updater
+  (systemd path unit installed by install.sh and the OVA) to install the latest release. The API
+  only provides a version number; the updater downloads the package itself from the official
+  releases, verifies its SHA-256, refuses downgrades, backs up, then runs the new install.sh
+  (data and settings kept). Progress (download, backup, install, done) is shown in the page and
+  survives the restart of the application. Installations made before this version need one
+  manual upgrade with install.sh. API `/admin/updates/apply`, `/admin/updates/progress`.
+
+### Fixed
+- Installer: an upgrade keeps the project name and ports of the existing installation.
+
 ## [0.15.0] - 2026-10-02 — HTTPS certificate, Administration in tabs
 
 ### Added

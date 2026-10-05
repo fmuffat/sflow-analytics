@@ -19,7 +19,7 @@ docker image inspect "$CH_IMAGE" >/dev/null 2>&1 || docker pull "$CH_IMAGE"
 
 echo "==> Assembling $OUT"
 rm -rf "$OUT" && mkdir -p "$OUT/clickhouse"
-cp packaging/install.sh packaging/uninstall.sh packaging/compose.yml packaging/QUICKSTART.md LICENSE "$OUT/"
+cp packaging/install.sh packaging/uninstall.sh packaging/updater.sh packaging/compose.yml packaging/QUICKSTART.md LICENSE "$OUT/"
 cp db/clickhouse/config.d/sflow.xml "$OUT/clickhouse/sflow.xml"
 sed -e 's|cd "$(dirname "$0")/.."|cd "$(dirname "$0")"|' \
     -e 's|$(git describe --tags --always 2>/dev/null \|\| echo unknown)|$(cat VERSION 2>/dev/null \|\| echo unknown)|' \

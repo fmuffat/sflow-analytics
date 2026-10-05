@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { type Clock, getClock, setClock } from "./lib/format";
 import { RoleContext } from "./hooks/role";
 import { UpdateBanner } from "./components/UpdateBanner";
+import { useUpdateStatus } from "./components/Updates";
 import { Alerts, useAlertCounts } from "./pages/Alerts";
 import { Navigate, NavLink, Route, Routes } from "react-router-dom";
 import { api, ApiError } from "./api/client";
@@ -94,7 +95,7 @@ function Shell({ me }: { me: Me }) {
           ) : system.data ? (
             <><span className="dot ok" />all services running</>
           ) : null}
-          <div style={{ marginTop: 4 }}>version {system.data?.version ?? "…"}</div>
+          <div style={{ marginTop: 4 }}>version {system.data?.version ?? "…"}{isAdmin && <NewVersionHint />}</div>
           <div className="clock" title="Time format">
             <button className={clock === "24h" ? "on" : ""} onClick={() => changeClock("24h")}>24 h</button>
             <button className={clock === "12h" ? "on" : ""} onClick={() => changeClock("12h")}>12 h</button>
@@ -140,4 +141,11 @@ function AlertBadge() {
   const n = c.data?.open ?? 0;
   if (!n) return null;
   return <span className={`nav-badge ${c.data?.critical ? "bad" : "warn"}`} title={`${n} open alert(s)`}>{n}</span>;
+}
+
+/** Administrators: discreet hint when a newer release is published on GitHub. */
+function NewVersionHint() {
+  const u = useUpdateStatus();
+  if (!u.data?.update_available) return null;
+  return <NavLink to="/admin" className="new-version" title={`Version ${u.data.latest_version} is available`}>↑ {u.data.latest_version} available</NavLink>;
 }

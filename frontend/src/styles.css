@@ -271,3 +271,13 @@ fieldset.notify-box legend { padding: 0 4px; font-weight: 600; }
 .form-stack { display: grid; gap: 10px; }
 .form-stack > label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
 .form-stack > label textarea, .form-stack > label input:not([type=file]):not([type=checkbox]) { width: 100%; box-sizing: border-box; color: var(--text); }
+
+/* Software updates */
+.nav .foot a.new-version { display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 8px; background: var(--brand); color: #fff; font-size: 11px; text-decoration: none; }
+pre.release-notes { white-space: pre-wrap; font-size: 12px; background: var(--panel-2); padding: 10px; border-radius: 6px; max-height: 320px; overflow: auto; }
+.update-progress { border: 1px solid var(--brand); border-radius: 8px; padding: 10px 12px; display: grid; gap: 8px; }
+.update-progress .steps { display: flex; gap: 6px; flex-wrap: wrap; }
+.update-progress .steps span { padding: 2px 10px; border-radius: 10px; font-size: 12px; background: var(--panel-2); color: var(--muted); }
+.update-progress .steps span.on { background: var(--brand); color: #fff; }
+.update-progress .steps span.done { background: rgba(31, 157, 85, 0.15); color: var(--ok); }
+.update-progress .steps span.bad { background: rgba(214, 69, 69, 0.15); color: var(--bad); }

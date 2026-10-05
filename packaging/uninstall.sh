@@ -6,6 +6,10 @@ set -euo pipefail
 [ "$(id -u)" -eq 0 ] || exec sudo -E "$0" "$@"
 DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$DIR"
+UNIT="sflow-update-$(grep '^SFLOW_PROJECT=' .env 2>/dev/null | cut -d= -f2)"
+[ "$UNIT" = "sflow-update-" ] && UNIT=sflow-update-sflow-analytics
+systemctl disable --now "$UNIT.path" >/dev/null 2>&1 || true
+rm -f "/etc/systemd/system/$UNIT.path" "/etc/systemd/system/$UNIT.service"; systemctl daemon-reload
 if [ "${1:-}" = "--purge" ]; then
   read -r -p "Delete ALL sFlow Analytics data in $DIR? Type 'delete' to confirm: " answer
   [ "$answer" = "delete" ] || { echo "cancelled"; exit 1; }

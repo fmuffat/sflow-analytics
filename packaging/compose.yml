@@ -53,6 +53,7 @@ services:
     volumes:
       - app-config:/config
       - nginx-certs:/certs        # HTTPS certificate, managed from Administration
+      - ./updates:/updates        # update requests / progress, shared with the host updater
     depends_on: [clickhouse, collector]
     logging: *logging
 

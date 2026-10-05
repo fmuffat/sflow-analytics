@@ -93,6 +93,22 @@ def alert_rules() -> str:
     return out
 
 
+@job("update-check", every=3600)
+def update_check() -> str:
+    """Latest published version on GitHub, checked at most once a day (can be disabled)."""
+    from . import updates
+
+    s = updates.check()
+    if not s["enabled"]:
+        return "disabled"
+    if s["error"]:  # sites without Internet access: informative, not a job failure
+        return f"last check failed ({s['error']}); installed {s['current_version']}"
+    if s["development_build"]:
+        return f"development build; latest release {s['latest_version']}"
+    return (f"{s['latest_version']} available (installed {s['current_version']})" if s["update_available"]
+            else f"up to date (latest {s['latest_version']}, installed {s['current_version']})")
+
+
 @job("history-rollup", every=300)
 def history_rollup() -> str:
     """Hourly interface history (kept 3 years) from the raw counters."""
