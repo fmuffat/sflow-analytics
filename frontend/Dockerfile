@@ -1,5 +1,7 @@
 # syntax=docker/dockerfile:1
-FROM node:22-alpine AS build
+# Static files are the same for every CPU: build them natively, not under arm64 emulation
+# (the TypeScript 7 native compiler hangs under QEMU).
+FROM --platform=$BUILDPLATFORM node:22-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund

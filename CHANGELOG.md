@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.17.1] - 2026-10-08
+
+### Fixed
+- Release: the multi-architecture web interface image is built once on the build machine (the
+  arm64 build under emulation hung, so the `frontend` 0.17.0 image was not published).
+
+### Changed
+- Dependencies: FastAPI 0.142.2; TanStack Query 5.104.1, Vite 8.3.2, Vitest 5.0.3.
+
 ## [0.17.0] - 2026-10-08 — PDF and Excel reports
 
 ### Added
