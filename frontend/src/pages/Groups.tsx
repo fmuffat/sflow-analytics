@@ -98,7 +98,7 @@ export function Groups() {
   );
 }
 
-function InterfacePicker(props: { selected: string[]; onChange: (m: string[]) => void }) {
+export function InterfacePicker(props: { selected: string[]; onChange: (m: string[]) => void }) {
   const ifs = useInterfaces();
   const exporters = useExporters();
   const names = new Map(exporters.data?.items.map((e) => [e.id, e.name]) ?? []);

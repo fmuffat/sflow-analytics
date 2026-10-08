@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.17.0] - 2026-10-08 — PDF and Excel reports
+
+### Added
+- **Reports (PDF and Excel)**, page Reports: weekly (previous Monday–Sunday, produced on Monday
+  from 08:00) and monthly (previous month, on the 1st) reports for technical teams, in English:
+  summary vs previous period, monitored links (interface groups and/or ports chosen one by one,
+  always shown, with exact volumes vs previous period and, monthly, the same month last year),
+  busiest ports (95th percentile), applications and protocols, top talkers, conversations,
+  daily trend, alerts and broadcast storms (only when one occurred). Excel: one sheet per section
+  with raw numbers. Sent by e-mail through the alert SMTP channel; history kept 90 days.
+  Administrators manage the definitions and use "Report now" (last period or custom dates);
+  read-only users download. Worker job `reports`; API `/reports`, `/report-definitions`.
+- **Logo** (sampled flows converging on the collector) in the navigation, the browser tab, the
+  reports and the README; sign-in page illustration.
+
+### Changed
+- Dependencies: FastAPI 0.142.0; TypeScript 7.0 (native compiler) for the web interface build.
+
 ## [0.16.0] - 2026-10-05 — Updates from the web interface
 
 ### Added

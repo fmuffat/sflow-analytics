@@ -2,6 +2,8 @@
 FROM python:3.12-slim AS base
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1
 WORKDIR /srv
+# Pango and fonts for the PDF reports (WeasyPrint).
+RUN apt-get update && apt-get install -y --no-install-recommends libpango-1.0-0 libpangoft2-1.0-0       libharfbuzz-subset0 fonts-dejavu-core && rm -rf /var/lib/apt/lists/*
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
@@ -14,6 +16,8 @@ CMD ["pytest", "-q"]
 
 FROM base AS runtime
 COPY app ./app
+# Writable cache for Fontconfig (PDF reports) as the unprivileged user.
+ENV XDG_CACHE_HOME=/tmp/.cache
 RUN useradd --system --uid 10001 api && mkdir -p /config && chown api /config
 # Configuration store (users, sessions, settings, secrets): mount the app-config volume here.
 VOLUME ["/config"]

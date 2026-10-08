@@ -121,6 +121,21 @@ def history_rollup() -> str:
     return f"{r['hours']} hour(s) from {r['from'][:16]} summarized" + ("" if r.get("complete") else " (catching up)")
 
 
+@job("reports", every=300)
+def scheduled_reports() -> str:
+    """Weekly and monthly reports when due (from 08:00 local time), e-mail, 90-day history."""
+    from .db import get_db
+    from .reports import service
+
+    r = service.run_scheduled(get_db())
+    out = (f"{len(r['generated'])} generated ({'; '.join(r['generated'])})" if r["generated"] else "nothing due")
+    if r["purged"]:
+        out += f", {r['purged']} expired report(s) removed"
+    if r["errors"]:
+        raise RuntimeError(out + " · problems: " + "; ".join(r["errors"]))
+    return out
+
+
 def run_job(j: Job) -> bool:
     started = time.time()
     store.execute("""INSERT INTO jobs (name, interval_seconds, last_started_at) VALUES (?, ?, ?)

@@ -108,3 +108,26 @@ def test_users_cli_roles(secured, capsys):
     assert users.main(["set-role", "viewer1", "viewer"]) == 0
     assert users.main(["set-role", "admin", "viewer"]) == 1  # last administrator
     assert users.main(["set-role", "ghost", "viewer"]) == 1
+
+
+def test_viewer_downloads_reports_but_cannot_manage_them(secured):
+    from app.reports import service
+
+    c, password, _ = secured
+    _ready_admin(c, password)
+    d = service.save_definition({"name": "Weekly", "period": "weekly"})
+    rid = service.queue(d, "manual", "admin")["id"]
+    (service.reports_dir() / f"{rid}.pdf").write_bytes(b"%PDF-1.7 test")
+    from app import store
+
+    store.execute("UPDATE reports SET status = 'ok', files = '{\"pdf\": {\"size\": 13}}' WHERE id = ?", (rid,))
+    r = c.post("/api/v1/admin/users", headers=UI, json={"username": "reader", "role": "viewer"})
+    viewer_pw = r.json()["password"]
+    c.post("/api/v1/auth/logout", headers=UI)
+    _ready(c, "reader", viewer_pw)
+    items = c.get("/api/v1/reports").json()["items"]
+    assert [i["id"] for i in items] == [rid]
+    assert c.get(f"/api/v1/reports/{rid}/pdf").content.startswith(b"%PDF")
+    assert c.get("/api/v1/report-definitions").status_code == 403
+    assert c.post(f"/api/v1/report-definitions/{d['id']}/run", headers=UI, json={}).status_code == 403
+    assert c.delete(f"/api/v1/reports/{rid}", headers=UI).status_code == 403

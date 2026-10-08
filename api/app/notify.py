@@ -94,15 +94,30 @@ def text(event: dict[str, Any]) -> str:
 # --- channels --------------------------------------------------------------------------
 
 def send_email(event: dict[str, Any], recipients: list[str] | None = None) -> None:
+    send_mail(title(event), text(event), recipients)
+
+
+def send_mail(subject: str, body: str, recipients: list[str] | None = None,
+              attachments: list[tuple[str, str, bytes]] = ()) -> list[str]:
+    """Sends one message through the SMTP channel; attachments are (file name, MIME type, content).
+    Returns the recipients."""
     c = settings()["email"]
     to = [r for r in (recipients or c["recipients"]) if r]
     if not c["host"] or not c["sender"] or not to:
         raise NotifyError("e-mail: SMTP host, sender and at least one recipient are required")
     msg = EmailMessage()
-    msg["Subject"] = title(event)
+    msg["Subject"] = subject
     msg["From"] = c["sender"]
     msg["To"] = ", ".join(to)
-    msg.set_content(text(event))
+    msg.set_content(body)
+    for name, mime, content in attachments:
+        maintype, subtype = mime.split("/", 1)
+        msg.add_attachment(content, maintype=maintype, subtype=subtype, filename=name)
+    _smtp_send(c, msg)
+    return to
+
+
+def _smtp_send(c: dict[str, Any], msg: EmailMessage) -> None:
     ctx = ssl.create_default_context()
     port = int(c["port"])
     try:

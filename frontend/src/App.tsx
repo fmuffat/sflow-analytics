@@ -12,6 +12,8 @@ import { Hosts } from "./pages/Hosts";
 import { Groups } from "./pages/Groups";
 import { Layer2 } from "./pages/Layer2";
 import { Trends } from "./pages/Trends";
+import { Reports } from "./pages/Reports";
+import { LogoMark } from "./components/Logo";
 import { ChangePassword, Login } from "./pages/Login";
 import { useSystemStatus } from "./hooks/queries";
 import { Dashboard } from "./pages/Dashboard";
@@ -23,7 +25,7 @@ import { InterfaceDetail } from "./pages/InterfaceDetail";
 import { CollectorHealth } from "./pages/CollectorHealth";
 
 const NAV: [string, [string, string][]][] = [
-  ["Monitor", [["/", "Dashboard"], ["/explorer", "Traffic Explorer"], ["/trends", "Trends"], ["/alerts", "Alerts"], ["/layer2", "Layer 2"]]],
+  ["Monitor", [["/", "Dashboard"], ["/explorer", "Traffic Explorer"], ["/trends", "Trends"], ["/alerts", "Alerts"], ["/reports", "Reports"], ["/layer2", "Layer 2"]]],
   ["Inventory", [["/devices", "Devices"], ["/interfaces", "Interfaces"], ["/hosts", "Hosts & aliases"], ["/groups", "Groups"]]],
   ["System", [["/health", "Collector Health"], ["/admin", "Administration"]]],
 ];
@@ -68,11 +70,7 @@ function Shell({ me }: { me: Me }) {
     <div className="app">
       <nav className="nav">
         <div className="brand">
-          <span className="mark">
-            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
-              <path d="M1 12l4-5 3 3 4-6 3 4" fill="none" stroke="#fff" strokeWidth="2" strokeLinejoin="round" />
-            </svg>
-          </span>
+          <LogoMark size={36} />
           <span>
             {system.data?.app_name ?? "sFlow Analytics"}
             <small>traffic volumes are estimates</small>
@@ -127,6 +125,7 @@ function Shell({ me }: { me: Me }) {
           <Route path="/trends" element={<Trends />} />
           <Route path="/users" element={<Navigate to="/admin?tab=users" replace />} />
           <Route path="/alerts" element={<Alerts />} />
+          <Route path="/reports" element={<Reports />} />
           <Route path="/account" element={<div style={{ maxWidth: 520 }}><ChangePassword /></div>} />
           <Route path="*" element={<div className="empty">Page not found.</div>} />
         </Routes>

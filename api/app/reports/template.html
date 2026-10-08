@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>{{ r.title }} — {{ r.label }}</title>
+<style>
+@page { size: A4; margin: 16mm 14mm 16mm 14mm;
+  @top-left { content: "sFlow Analytics · {{ r.title }}"; font: 8pt "DejaVu Sans"; color: #6b7480; }
+  @top-right { content: "{{ r.label }}"; font: 8pt "DejaVu Sans"; color: #6b7480; }
+  @bottom-left { content: "Traffic volumes are estimates (sFlow sampling); utilization comes from interface counters."; font: 7pt "DejaVu Sans"; color: #9aa1a9; }
+  @bottom-right { content: "Page " counter(page) " / " counter(pages); font: 8pt "DejaVu Sans"; color: #6b7480; } }
+@page :first { margin-top: 0; @top-left { content: none; } @top-right { content: none; } }
+* { box-sizing: border-box; }
+body { font: 9pt/1.4 "DejaVu Sans", sans-serif; color: #22262b; margin: 0; }
+h1 { font-size: 26pt; margin: 0 0 4mm; color: #fff; }
+h2 { font-size: 13pt; margin: 0 0 3mm; padding-bottom: 1.5mm; border-bottom: 2px solid #f58220; break-after: avoid; }
+h3 { font-size: 10pt; margin: 4mm 0 2mm; break-after: avoid; }
+.cover { height: 265mm; display: flex; flex-direction: column; break-after: page; margin: 0 -14mm; }
+.cover .band { background: #1e2124; color: #fff; padding: 30mm 14mm 14mm; border-top: 3mm solid #f58220; }
+.cover .band .sub { font-size: 14pt; color: #d7dadd; }
+.cover .meta { padding: 10mm 14mm; }
+.cover .meta table td { padding: 1.5mm 6mm 1.5mm 0; }
+.cover .meta td:first-child { color: #6b7480; }
+.cover .toc { padding: 0 14mm; color: #6b7480; }
+section { break-before: page; }
+section.flow { break-before: auto; margin-top: 7mm; }
+.kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3mm; margin-bottom: 4mm; }
+.kpi { border: 1px solid #e3e6ea; border-top: 2px solid #f58220; border-radius: 2mm; padding: 2.5mm 3mm; }
+.kpi .l { color: #6b7480; font-size: 7.5pt; text-transform: uppercase; letter-spacing: .03em; }
+.kpi .v { font-size: 15pt; font-weight: bold; margin: .5mm 0; }
+.kpi .c { font-size: 8pt; color: #6b7480; }
+.up { color: #c0601a; font-weight: bold; } .down { color: #1f8f4e; font-weight: bold; }
+table.t { width: 100%; border-collapse: collapse; font-size: 8pt; margin-bottom: 3mm; }
+table.t th { text-align: left; color: #6b7480; font-weight: normal; border-bottom: 1px solid #c9ced4; padding: 1.2mm 1.5mm; background: #f5f6f8; }
+table.t td { border-bottom: 1px solid #eceef1; padding: 1.1mm 1.5mm; vertical-align: middle; }
+table.t td.n, table.t th.n { text-align: right; white-space: nowrap; }
+table.t tr { break-inside: avoid; }
+tr.warn td { background: #fdf1e6; }
+.name { font-weight: bold; } .ip { font-family: "DejaVu Sans Mono"; font-size: 7.5pt; color: #6b7480; }
+.muted { color: #6b7480; } .small { font-size: 7.5pt; }
+.badge { display: inline-block; padding: .2mm 1.8mm; border-radius: 2mm; font-size: 7pt; font-weight: bold; }
+.b-warn { background: #fde8d4; color: #b4570f; } .b-bad { background: #f8dcdc; color: #b33030; } .b-ok { background: #dcf1e3; color: #1f7a45; } .b-muted { background: #eef0f2; color: #6b7480; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; }
+.donutbox { display: flex; gap: 4mm; align-items: center; }
+.legend td { padding: .6mm 1.5mm; font-size: 8pt; }
+.sw { display: inline-block; width: 2.6mm; height: 2.6mm; border-radius: .5mm; }
+.note { background: #f5f6f8; border-left: 2px solid #b9bfc6; padding: 2mm 3mm; font-size: 8pt; color: #4a525b; margin: 2mm 0 3mm; }
+.chart { margin: 2mm 0; }
+.leg2 span { margin-right: 5mm; font-size: 8pt; color: #4a525b; }
+</style></head>
+<body>
+
+<div class="cover">
+  <div class="band">
+    <div style="font-size:11pt;color:#f58220;font-weight:bold;letter-spacing:.05em"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="34" height="34" style="vertical-align:middle;margin-right:8px"><rect width="34" height="34" style="vertical-align:middle;margin-right:8px" rx="14" fill="#f58220"/><g fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"><path d="M14 18C30 18 32 32 50 32"/><path d="M14 32H50"/><path d="M14 46C30 46 32 32 50 32"/></g><g fill="#fff"><circle cx="14" cy="18" r="4.5"/><circle cx="14" cy="32" r="4.5"/><circle cx="14" cy="46" r="4.5"/><circle cx="50" cy="32" r="6"/></g></svg>SFLOW ANALYTICS</div>
+    <h1>{{ r.title }}</h1>
+    <div class="sub">{{ r.label }}</div>
+  </div>
+  <div class="meta">
+    <table>
+      <tr><td>Period</td><td>{{ r.start.strftime("%a %d %b %Y %H:%M") }} → {{ r.end.strftime("%a %d %b %Y %H:%M") }} ({{ r.tz }})</td></tr>
+      <tr><td>Compared with</td><td>{{ r.previous_start.strftime("%d %b %Y") }} → {{ r.previous_end.strftime("%d %b %Y") }}{% if r.summary and not r.summary.has_previous %} <span class="muted">(no data for that period)</span>{% endif %}</td></tr>
+      <tr><td>Scope</td><td>{{ r.scope | join(", ") }}</td></tr>
+      {% if r.ports and r.ports.groups %}<tr><td>Monitored links</td><td>interface group{{ "s" if r.ports.groups|length > 1 }}: {{ r.ports.groups | join(", ") }}</td></tr>{% endif %}
+      <tr><td>Generated</td><td>{{ r.generated_at.strftime("%d %b %Y %H:%M") }}</td></tr>
+    </table>
+  </div>
+  <div class="toc">
+    <b style="color:#22262b">Contents</b><br>
+    {% for s in r.sections %}{{ loop.index }}. {{ SECTION_TITLES[s] }}<br>{% endfor %}
+  </div>
+</div>
+
+{% if r.summary %}{% set s = r.summary %}
+<section>
+<h2>{{ num("summary") }}. Summary</h2>
+<div class="kpis">
+  <div class="kpi"><div class="l">Traffic volume</div><div class="v">{{ bytes(s.bytes) }}</div><div class="c">{{ change(s.bytes_change) | safe }} {{ "vs " ~ bytes(s.prev_bytes) if s.has_previous }}</div></div>
+  <div class="kpi"><div class="l">Average throughput</div><div class="v">{{ bps(s.bps) }}</div><div class="c">{{ change(s.bps_change) | safe }} {{ "vs " ~ bps(s.prev_bps) if s.has_previous }}</div></div>
+  <div class="kpi"><div class="l">Switches</div><div class="v">{{ s.exporters }}</div><div class="c">sending sFlow</div></div>
+  <div class="kpi"><div class="l">Alerts</div><div class="v">{{ s.alerts }}</div><div class="c">{% if s.storm_events %}{{ s.storm_events }} broadcast storm{{ "s" if s.storm_events > 1 }} ({{ s.storm_ports }} ports){% else %}no broadcast storm{% endif %}</div></div>
+</div>
+<table class="t">
+  <tr><th>Indicator</th><th class="n">This period</th><th class="n">Previous period</th><th class="n">Change</th></tr>
+  <tr><td>Traffic volume (estimated)</td><td class="n">{{ bytes(s.bytes) }}</td><td class="n">{{ bytes(s.prev_bytes) if s.has_previous else "–" }}</td><td class="n">{{ change(s.bytes_change) | safe }}</td></tr>
+  <tr><td>Average throughput</td><td class="n">{{ bps(s.bps) }}</td><td class="n">{{ bps(s.prev_bps) if s.has_previous else "–" }}</td><td class="n">{{ change(s.bps_change) | safe }}</td></tr>
+  <tr><td>Hosts seen (sources / destinations)</td><td class="n">{{ "{:,}".format(s.sources) }} / {{ "{:,}".format(s.destinations) }}</td><td class="n"></td><td></td></tr>
+  <tr><td>Conversations</td><td class="n">{{ "{:,}".format(s.conversations) }}</td><td class="n"></td><td></td></tr>
+  <tr><td>sFlow samples analysed</td><td class="n">{{ "{:,}".format(s.samples) }}</td><td class="n"></td><td></td></tr>
+</table>
+{% if not s.has_previous %}<div class="note">No data for the previous period: changes will appear from the next report.</div>{% endif %}
+</section>{% endif %}
+
+{% if r.ports %}{% set p = r.ports %}
+<section class="flow">
+<h2>{{ num("ports") }}. Monitored links and busiest ports</h2>
+<div class="note">Exact values from interface counters. The <b>95th percentile</b> ignores the 5 % highest polls (short bursts): it is the usual capacity indicator. Rows above {{ p.warn_pct|int }} % are highlighted.</div>
+{% if p.monitored %}<h3>Monitored links</h3>{{ port_table(p.monitored, p.warn_pct, True) | safe }}
+{% elif not p.groups and not p.selected %}<div class="note">No monitored links: add an interface group (e.g. "Uplinks") to the report to follow the same links every period.</div>{% endif %}
+{% if p.volumes %}<h3>Traffic volume on monitored links</h3>
+<table class="t">
+  <tr><th>Switch / port</th><th class="n">This period</th><th class="n">Previous period</th><th class="n">Change</th>{% if p.volumes_year %}<th class="n">Same period last year</th><th class="n">Change</th>{% endif %}</tr>
+  {% for v in p.volumes %}<tr><td><b>{{ v.exporter_name }}</b> {{ v.label }}</td><td class="n">{{ bytes(v.bytes) }}</td>
+    <td class="n">{{ bytes(v.prev_bytes) if v.prev_bytes else "–" }}</td><td class="n">{{ change(v.prev_change) | safe }}</td>
+    {% if p.volumes_year %}<td class="n">{{ bytes(v.year_bytes) if v.year_bytes else "–" }}</td><td class="n">{{ change(v.year_change) | safe }}</td>{% endif %}</tr>{% endfor %}
+</table>
+<div class="note">Exact volumes (in + out) from the hourly interface history{% if p.volumes_year %}, kept 3 years{% endif %}.</div>{% endif %}
+{% if p.missing_groups %}<div class="note">Unknown interface group(s): {{ p.missing_groups | join(", ") }}.</div>{% endif %}
+{% if p.busiest %}<h3>Busiest ports</h3>{{ port_table(p.busiest, p.warn_pct, False) | safe }}{% endif %}
+</section>{% endif %}
+
+{% if r.applications is defined %}
+<section>
+<h2>{{ num("applications") }}. Applications and protocols</h2>
+<div class="two">
+  <div><h3>Applications (protocol + port)</h3>
+    <div class="donutbox">{{ donut(r.applications) | safe }}{{ legend(r.applications) | safe }}</div></div>
+  <div><h3>IP protocols</h3>
+    <div class="donutbox">{{ donut(r.protocols) | safe }}{{ legend(r.protocols) | safe }}</div></div>
+</div>
+<table class="t">
+  <tr><th>Application</th><th class="n">Traffic</th><th class="n">Packets</th><th class="n">Share</th></tr>
+  {% for a in r.applications %}<tr><td>{{ a.service }}</td><td class="n">{{ bytes(a.bytes) }}</td><td class="n">{{ "{:,}".format(a.packets) }}</td><td class="n">{{ a.percent }} %</td></tr>{% endfor %}
+</table>
+</section>{% endif %}
+
+{% if r.sources is defined %}
+<section class="flow">
+<h2>{{ num("talkers") }}. Top talkers and destinations</h2>
+<div class="two">
+  <div><h3>Sources</h3>{{ host_table(r.sources) | safe }}</div>
+  <div><h3>Destinations</h3>{{ host_table(r.destinations) | safe }}</div>
+</div>
+</section>{% endif %}
+
+{% if r.conversations is defined %}
+<section class="flow">
+<h2>{{ num("conversations") }}. Top conversations</h2>
+<table class="t">
+  <tr><th>Host A</th><th>Host B</th><th>Application</th><th class="n">A → B</th><th class="n">B → A</th><th class="n">Total</th><th class="n">Share</th></tr>
+  {% for c in r.conversations %}<tr>
+    <td>{{ host(c.host_a, c.host_a_name, c.host_a_vendor) | safe }}</td><td>{{ host(c.host_b, c.host_b_name, c.host_b_vendor) | safe }}</td>
+    <td>{{ c.service }}</td><td class="n">{{ bytes(c.a_to_b_bytes) }}</td><td class="n">{{ bytes(c.b_to_a_bytes) }}</td>
+    <td class="n"><b>{{ bytes(c.bytes) }}</b></td><td class="n">{{ c.percent }} %</td></tr>{% endfor %}
+</table>
+</section>{% endif %}
+
+{% if r.trend is defined %}
+<section>
+<h2>{{ num("trends") }}. Trends</h2>
+<div class="leg2"><span><span class="sw" style="background:#f58220"></span> this period</span><span><span class="sw" style="background:#b9bfc6"></span> previous period</span>
+  <span class="muted">traffic per {{ "hour" if r.trend.step == 3600 else "day" }} (estimated)</span></div>
+<div class="chart">{{ bars(r.trend.points) | safe }}</div>
+<table class="t">
+  <tr><th>{{ "Hour" if r.trend.step == 3600 else "Day" }}</th><th class="n">This period</th><th class="n">Average</th><th class="n">Previous period</th><th class="n">Change</th></tr>
+  {% for p in r.trend.points %}<tr><td>{{ p.label }}</td><td class="n">{{ bytes(p.bytes) }}</td><td class="n">{{ bps(p.bps) }}</td>
+    <td class="n">{{ bytes(p.prev_bytes) if p.prev_bytes else "–" }}</td><td class="n">{{ change(pct(p.bytes, p.prev_bytes)) | safe }}</td></tr>{% endfor %}
+</table>
+</section>{% endif %}
+
+{% if r.alerts is defined %}
+<section class="flow">
+<h2>{{ num("alerts") }}. Alerts and incidents</h2>
+{% if r.alerts %}
+<table class="t">
+  <tr><th>Severity</th><th>Rule</th><th>On</th><th>Opened</th><th class="n">Duration</th><th>Details</th></tr>
+  {% for a in r.alerts %}<tr><td><span class="badge {{ 'b-bad' if a.severity == 'critical' else 'b-warn' if a.severity == 'warning' else 'b-muted' }}">{{ a.severity }}</span></td>
+    <td>{{ a.rule }}</td><td>{{ a.subject }}</td><td>{{ localtime(a.opened_at) }}</td><td class="n">{{ duration(a.duration_s) }}</td><td class="small muted">{{ a.message }}</td></tr>{% endfor %}
+</table>
+{% else %}<div class="note">No alert during this period.</div>{% endif %}
+{% if r.storm_events %}
+<h3>Broadcast storms (interface counters)</h3>
+{% for e in r.storm_events %}
+<div class="note"><b>{{ e.at.strftime("%a %d %b %H:%M") }}</b> — {{ e.ports|length }} port{{ "s" if e.ports|length > 1 }} on {{ e.switches | join(", ") }},
+  peak {{ "{:,.0f}".format(e.max_pps) }} broadcast packets/s, {{ e.polls }} × 20 s polls above 1,000 pps (check for a loop or a flooding host).</div>
+<table class="t">
+  <tr><th>Switch</th><th>Port</th><th class="n">Peak broadcast</th><th class="n">Polls above 1,000 pps</th></tr>
+  {% for p in e.ports %}<tr><td>{{ p.switch }}</td><td>{{ p.port }}</td><td class="n">{{ "{:,.0f}".format(p.pps) }} pps</td><td class="n">{{ p.polls }} × 20 s</td></tr>{% endfor %}
+</table>
+{% endfor %}
+{% endif %}
+</section>{% endif %}
+
+</body></html>

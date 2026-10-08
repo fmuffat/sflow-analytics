@@ -101,6 +101,39 @@ MIGRATIONS = [
     CREATE UNIQUE INDEX alerts_active ON alerts(rule_id, object_key) WHERE state != 'closed';
     CREATE INDEX alerts_opened ON alerts(opened_at);
     """,
+    # 4: reports (definitions and generated reports, files in <config>/reports)
+    """
+    CREATE TABLE report_definitions (
+        id INTEGER PRIMARY KEY,
+        name TEXT NOT NULL,
+        enabled INTEGER NOT NULL DEFAULT 1,
+        period TEXT NOT NULL,
+        options TEXT NOT NULL DEFAULT '{}',
+        delivery TEXT NOT NULL DEFAULT '{}',
+        last_period TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+    );
+    CREATE TABLE reports (
+        id INTEGER PRIMARY KEY,
+        definition_id INTEGER REFERENCES report_definitions(id) ON DELETE SET NULL,
+        title TEXT NOT NULL,
+        period TEXT NOT NULL,
+        label TEXT,
+        period_start TEXT,
+        period_end TEXT,
+        trigger TEXT NOT NULL,
+        created_by TEXT,
+        created_at TEXT NOT NULL,
+        finished_at TEXT,
+        status TEXT NOT NULL,
+        error TEXT,
+        files TEXT NOT NULL DEFAULT '{}',
+        summary TEXT NOT NULL DEFAULT '{}',
+        delivery TEXT NOT NULL DEFAULT '{}'
+    );
+    CREATE INDEX reports_created ON reports(created_at);
+    """,
 ]
 
 _local = threading.local()

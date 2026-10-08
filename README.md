@@ -1,3 +1,5 @@
+<img src="docs/logo.svg" width="56" alt="" align="left">
+
 # sFlow Analytics
 
 **Self-hosted sFlow collector and traffic analytics for RUCKUS ICX switches** (and any sFlow v5
@@ -19,6 +21,8 @@ with no license, no agent and no extra hardware: the switches already export sFl
   from a 3-year hourly history per interface.
 - **Alerts**: utilization, discards, broadcast storms, silent switches, host or group traffic
   thresholds; e-mail, Microsoft Teams / Slack webhooks, syslog.
+- **Reports**: weekly and monthly PDF and Excel reports (monitored links, busiest ports,
+  applications, talkers, trends, alerts), e-mailed and kept 90 days; "Report now" on any period.
 - **RUCKUS One or SmartZone integration** (optional, read-only): switch and port names, LLDP
   neighbors, client names.
 - **Names everywhere**: host aliases (IP, MAC, subnet), reverse DNS, MAC vendors (bundled IEEE
@@ -96,7 +100,7 @@ disk and grow it at any time: [docs/deployment.md](docs/deployment.md).
 ```
 ICX switches ──sFlow v5 / UDP 6343──▶ collector (Go) ──▶ ClickHouse ──▶ API (FastAPI) ──▶ web UI (React)
                                                                  ▲           │              behind nginx HTTPS
-                                       worker: history, alerts, DNS, RUCKUS One / SmartZone sync
+                                       worker: history, alerts, reports, DNS, RUCKUS One / SmartZone sync
 ```
 
 Traffic volumes are **estimates** (sampled packet size × sampling rate), as with any
@@ -122,7 +126,7 @@ scripts/build-package.sh   # offline installation package in dist/
 | Directory | Content |
 |-----------|---------|
 | `collector/` | Go collector: UDP listener, sFlow decoding, exporter discovery, ClickHouse sink, disk guard, synthetic sender |
-| `api/` | FastAPI service and background worker (alerts, history, DNS, controller sync) |
+| `api/` | FastAPI service and background worker (alerts, reports, history, DNS, controller sync) |
 | `frontend/` | React + TypeScript web UI |
 | `nginx/` | HTTPS reverse proxy |
 | `packaging/` | offline installer (`install.sh`, compose file, quick start) |

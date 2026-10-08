@@ -100,19 +100,37 @@ The repository must be publishable at any time without cleanup. No remote/push u
 - [ ] P1 Alerts page + badge in the navigation; alert → link to the filtered explorer/interface view
 
 ## M10 — Reporting (needs M6 worker, uses M8 groups)
-- [ ] P1 **Reports** (requested 2026-10-05): PDF and Excel (.xlsx), on demand and scheduled
-      (daily / weekly / monthly), sent by e-mail (reuses the SMTP channel of the alerts) and kept
-      for download in the UI
-  - [ ] Report definitions: name, period, scope (all, switches, interface group, IP group),
-        sections, recipients, schedule (e.g. Monday 08:00, viewer time zone)
-  - [ ] Sections: summary (volume, average/peak, vs previous period), uplink / interface
-        utilization (avg, 95th percentile, peak, discards), top talkers and destinations, top
-        applications and protocols, top conversations, trends vs previous week/month,
-        alerts of the period, broadcast storms
-  - [ ] PDF: cover, charts, tables, company name/logo option; Excel: one sheet per section with
-        raw numbers (for customers who build their own charts)
-  - [ ] Worker job generating and e-mailing the reports; history of sent reports with download
-  - [ ] Read-only users can download reports; administrators manage definitions
+- [x] P1 **Reports v1** — requirements agreed 2026-10-08 (done 2026-10-08; one definition = one
+  period: create two definitions for weekly + monthly; scope = switches):
+  - Readers: **technical teams** (network engineers, integrators); language: **English**
+  - Formats: **PDF** (readable, charts, 3-8 pages, application colors) and **Excel .xlsx** (one sheet
+    per section with raw numbers, plus an "Info" sheet with period and filters)
+  - Schedules: **weekly** (previous Monday 00:00 → Sunday 24:00, sent Monday 08:00 by default,
+    compared with the previous week) and **monthly** (previous calendar month, sent on the 1st,
+    compared with the previous month and the same month of the previous year when history
+    exists); appliance time zone; one report definition can be weekly, monthly or both
+  - **On demand** ("Report now") on any period (incident / audit)
+  - Report definition: name, sections, scope (all, switches, IP group), **monitored links** =
+    interface groups (always shown, e.g. "Uplinks"), **busiest ports** = automatic top 5/10/20
+    (excluding monitored links, can be disabled), warning threshold (e.g. 95th percentile > 70 %),
+    recipients, formats
+  - Sections v1: 1 cover · 2 summary in figures with change vs previous period · 3 monitored
+    links and busiest ports (avg, 95th percentile, peak, discards) · 4 top applications and
+    protocols · 5 top talkers and destinations (with names) · 6 top conversations · 7 trends vs
+    previous period · 8 alerts and incidents of the period (saturation, broadcast storms,
+    silent switches, durations)
+  - Delivery: e-mail through the alert SMTP channel (PDF attached, Excel optional, 5-line summary
+    in the body); history of generated reports downloadable in the UI, kept 90 days
+  - Rights: administrators manage definitions; read-only users download reports
+- [ ] P2 Reports — kept for discussion (2026-10-08):
+  - Scope by IP group (v1: all switches or a selection); configurable send hour (v1: 08:00)
+  - Section 9 inventory (switches, models, active ports; RUCKUS One / SmartZone data)
+  - Section 10 automatic recommendations (e.g. "uplink above 80 % for 6 h: consider LAG or
+    25G", "3 broadcast storms on switch X: check loops / STP") — wording to validate before
+    use with customers
+  - Customer-facing variant: customer name and logo per report (or one logo per appliance)
+  - French language (and language choice per report)
+  - Capacity report (uplinks over several months, forecast)
 - [ ] P3 Saved views and customizable dashboards (widgets chosen per user)
 
 ## M12 — In-app updates (requested 2026-10-05)

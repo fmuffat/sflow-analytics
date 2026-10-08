@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
+import { LoginArt, LogoMark } from "../components/Logo";
 
 /** Login screen shown when the API answers 401. */
 export function Login() {
@@ -26,13 +27,11 @@ export function Login() {
 
   return (
     <div className="login-wrap">
+      <div className="login-card">
+      <div className="login-art"><LoginArt /></div>
       <form className="panel login" onSubmit={submit}>
         <div className="login-brand">
-          <span className="mark">
-            <svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true">
-              <path d="M1 12l4-5 3 3 4-6 3 4" fill="none" stroke="#fff" strokeWidth="2" strokeLinejoin="round" />
-            </svg>
-          </span>
+          <LogoMark size={30} />
           sFlow Analytics
         </div>
         <label>Username<input autoFocus={!username} value={username} autoComplete="username" onChange={(e) => setUsername(e.target.value)} /></label>
@@ -43,6 +42,7 @@ export function Login() {
           First start: the initial admin password is in the API log and in <code>initial-admin-password</code> on the configuration volume.
         </div>
       </form>
+      </div>
     </div>
   );
 }
