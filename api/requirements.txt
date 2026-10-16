@@ -6,7 +6,7 @@ pydantic-settings==2.15.0
 httpx==0.28.1
 argon2-cffi==25.1.0
 cryptography==50.0.2
-dnspython==2.8.0
+dnspython==2.9.0
 tzdata==2026.5
 weasyprint==70.0
 openpyxl==3.1.5
