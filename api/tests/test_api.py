@@ -205,13 +205,36 @@ def test_exporters_and_rename(client):
 def test_interface_mapping(client):
     iid = f"{exp_id(EXP_A)}/48"
     r = client.patch(f"/api/v1/interfaces/{iid}", json={"name": "1/1/48", "description": "uplink core"})
-    assert r.status_code == 200 and r.json()["label"] == "1/1/48"
+    assert r.status_code == 200 and r.json()["label"] == "1/1/48 uplink core"
+    r = client.patch(f"/api/v1/interfaces/{iid}", json={"description": ""})   # name kept, description cleared
+    assert r.json()["label"] == "1/1/48" and r.json()["manual_description"] is None
     listed = client.get("/api/v1/interfaces", params={"exporter": exp_id(EXP_A)}).json()["items"]
     assert {i["ifindex"]: i["label"] for i in listed} == {1: "ifIndex 1", 48: "1/1/48"}
     top = get(client, "/traffic/top-interfaces", limit=20)["items"]
     assert any(i["label"] == "1/1/48" for i in top)
     assert client.get(f"/api/v1/interfaces/{exp_id(EXP_A)}/999").status_code == 404
     assert client.get("/api/v1/interfaces/garbage").status_code == 404
+
+
+def test_icx_numbering_without_controller(client):
+    from app.enrichment.icx import ifindex_port, port_ifindex
+
+    for p in ("1/1/8", "1/2/1", "1/3/1", "2/1/48", "12/4/64"):
+        assert ifindex_port(port_ifindex(p)) == p
+    assert ifindex_port(3075) == "LAG3" and ifindex_port(5000) is None and ifindex_port(0) is None
+    eid = exp_id(EXP_A)
+    r = client.patch(f"/api/v1/exporters/{eid}", json={"icx_numbering": True})
+    assert r.status_code == 200 and r.json()["icx_numbering"] is True
+    client.patch(f"/api/v1/interfaces/{eid}/1", json={"description": "Uplink"})
+    try:
+        items = {i["ifindex"]: i for i in client.get("/api/v1/interfaces", params={"exporter": eid}).json()["items"]}
+        assert items[1]["port"] == "1/1/1" and items[1]["label"] == "1/1/1 Uplink"
+        assert items[48]["label"] == "1/1/48"     # manual name wins
+        assert client.patch(f"/api/v1/exporters/{eid}", json={"icx_numbering": False}).json()["icx_numbering"] is False
+        items = {i["ifindex"]: i for i in client.get("/api/v1/interfaces", params={"exporter": eid}).json()["items"]}
+        assert items[1]["port"] is None and items[1]["label"] == "ifIndex 1 Uplink"
+    finally:
+        client.patch(f"/api/v1/interfaces/{eid}/1", json={"description": ""})
 
 
 def test_health_and_status(client):

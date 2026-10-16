@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.48.0
-	github.com/netsampler/goflow2/v2 v2.2.6
+	github.com/netsampler/goflow2/v2 v2.2.7
 )
 
 require (

@@ -5,6 +5,9 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
+import json
+
+from . import security
 from .catalog import ip_expr
 from .db import Database
 from .enrichment import icx
@@ -55,6 +58,23 @@ def controller_ports(db: Database) -> dict[tuple[str, int], dict[str, Any]]:
     return {(r["switch_serial"], r["ifindex"]): r for r in rows}
 
 
+ICX_KEY = "inventory.icx_numbering"
+
+
+def icx_numbering() -> set[str]:
+    """Switches whose ports are named from the RUCKUS ICX ifIndex numbering (no controller needed)."""
+    try:
+        return set(json.loads(security.get_setting(ICX_KEY) or "[]"))
+    except ValueError:
+        return set()
+
+
+def set_icx_numbering(exporter_id: str, on: bool) -> None:
+    ids = icx_numbering()
+    ids = ids | {exporter_id} if on else ids - {exporter_id}
+    security.set_setting(ICX_KEY, json.dumps(sorted(ids)))
+
+
 def exporters(db: Database) -> list[dict[str, Any]]:
     rows = db.query(f"""
         SELECT e.id AS id, {ip_expr('e.exporter_ip')} AS exporter_ip, {ip_expr('e.agent_ip')} AS agent_ip,
@@ -65,7 +85,9 @@ def exporters(db: Database) -> list[dict[str, Any]]:
         ORDER BY e.id
         SETTINGS join_use_nulls = 1""")
     ctrl = controller_switches(db)
+    icx_ids = icx_numbering()
     for r in rows:
+        r["icx_numbering"] = r["id"] in icx_ids
         r["display_name"] = r["display_name"] or None
         r["notes"] = r["notes"] or None
         c = ctrl.get(r["agent_ip"]) or ctrl.get(r["exporter_ip"])
@@ -101,23 +123,30 @@ def interfaces(db: Database, exporter_id: str | None = None) -> list[dict[str, A
         SETTINGS join_use_nulls = 1""", params)
     serials = {e["id"]: (e["controller"] or {}).get("serial") for e in exporters(db)}
     ports = controller_ports(db) if any(serials.values()) else {}
+    icx_ids = icx_numbering()
     for r in rows:
-        decorate_interface(r, ports.get((serials.get(r["exporter_id"]), r["ifindex"])))
+        decorate_interface(r, ports.get((serials.get(r["exporter_id"]), r["ifindex"])), r["exporter_id"] in icx_ids)
     return rows
 
 
-def decorate_interface(r: dict[str, Any], ctrl: dict[str, Any] | None = None) -> None:
-    """Label priority: manual name > controller port (e.g. '1/1/8 Uplink') > 'ifIndex N'.
+def decorate_interface(r: dict[str, Any], ctrl: dict[str, Any] | None = None, icx_numbering: bool = False) -> None:
+    """Label = port + description, e.g. '1/1/8 Uplink'.
+
+    Port: manual name > controller port > RUCKUS ICX numbering derived from the ifIndex (when
+    enabled for the switch) > 'ifIndex N'. Description: manual > controller port name. A manual
+    name is shown as typed, followed by the manual description when it is not already in it.
 
     The ifIndex<->port mapping is derived from the ICX numbering; when the
     controller and sFlow disagree on the port speed the mapping is flagged
     uncertain and not used for the label."""
     r["name"] = r.get("name") or None
-    r["description"] = r.get("description") or None
+    r["manual_description"] = r.get("description") or None
+    r["description"] = r["manual_description"]
     r["id"] = f"{r['exporter_id']}/{r['ifindex']}"
     r["speed_bps"] = r.get("speed_bps") or None
     r["controller_port"] = None
-    auto = None
+    port = icx.ifindex_port(r["ifindex"]) if icx_numbering else None
+    ctrl_desc = None
     if ctrl:
         c_speed = icx.speed_bps(ctrl.get("speed"))
         uncertain = bool(c_speed and r["speed_bps"] and abs(c_speed - r["speed_bps"]) > 0.01 * r["speed_bps"])
@@ -129,10 +158,17 @@ def decorate_interface(r: dict[str, Any], ctrl: dict[str, Any] | None = None) ->
             "lldp_port_mac": ctrl["lldp_port_mac"] or None, "mapping_uncertain": uncertain,
         }
         if not uncertain:
-            auto = ctrl["port_id"] + (f" {ctrl['name']}" if ctrl["name"] else "")
-            if not r["description"] and ctrl["name"]:
-                r["description"] = ctrl["name"]
-    r["label"] = r["name"] or auto or f"ifIndex {r['ifindex']}"
+            port = ctrl["port_id"]
+            ctrl_desc = ctrl["name"] or None
+            if not r["description"] and ctrl_desc:
+                r["description"] = ctrl_desc
+    r["port"] = port
+    if r["name"]:
+        d = r["manual_description"]
+        r["label"] = r["name"] + (f" {d}" if d and d.lower() not in r["name"].lower() else "")
+    else:
+        d = r["manual_description"] or ctrl_desc
+        r["label"] = (port or f"ifIndex {r['ifindex']}") + (f" {d}" if d else "")
 
 
 def interface(db: Database, exporter_id: str, ifindex: int) -> dict[str, Any] | None:

@@ -79,7 +79,7 @@ export const useSystemStatus = () =>
 export function useUpdateExporter(id: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (body: { display_name?: string; notes?: string }) => api.patch<Exporter>(exporterPath(id), body),
+    mutationFn: (body: { display_name?: string; notes?: string; icx_numbering?: boolean }) => api.patch<Exporter>(exporterPath(id), body),
     onSuccess: () => qc.invalidateQueries(),
   });
 }

@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.18.0] - 2026-10-16 — Port names without a controller
+
+### Added
+- **Port names without a controller**: per switch option "RUCKUS ICX" (device page → Settings)
+  that names the ports from the ifIndex (1/1/8, 1/2/1, LAG3) instead of "ifIndex N"; the port
+  description can be edited in the device's Interfaces table and is shown after the port
+  ("1/1/8 Uplink") everywhere (tables, reports, alerts).
+
+### Changed
+- Dependencies: cryptography 50.0.2, tzdata 2026.5, goflow2 2.2.7, Vite 8.3.3,
+  @vitejs/plugin-react 6.1.2.
+
 ## [0.17.1] - 2026-10-08
 
 ### Fixed

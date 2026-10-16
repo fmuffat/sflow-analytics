@@ -172,6 +172,10 @@ export interface Interface {
   oper_up: boolean | null;
   name: string | null;
   description: string | null;
+  /** Description typed by an administrator (description falls back to the controller port name). */
+  manual_description?: string | null;
+  /** Port derived from the controller or the RUCKUS ICX numbering, e.g. 1/1/8. */
+  port?: string | null;
   label: string;
 }
 
@@ -185,6 +189,7 @@ export interface Exporter {
   sample_rate: number;
   display_name: string | null;
   notes: string | null;
+  icx_numbering?: boolean;
   name: string;
   status: "active" | "inactive";
   status_source: "collector" | "database";

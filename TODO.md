@@ -74,6 +74,16 @@ The repository must be publishable at any time without cleanup. No remote/push u
       rename), CSV import/export; names shown next to IPs everywhere and usable as filters.
       Name priority everywhere: **manual alias > controller client name (SZ/R1) > reverse DNS > IP**.
       (Switches and interfaces are already renameable.)
+- [ ] P2 **Switch and port names without a controller** (requested 2026-10-16). Today: a switch
+      can be renamed (Devices, click the name) and a port named (device page → Interfaces, Name);
+      missing for sites without RUCKUS One / SmartZone:
+  - [x] edit the port **description** in the UI and show "port description" as the label, like
+    with the controller ("1/1/8 Uplink") (2026-10-16)
+  - [x] **ICX port numbering without controller**: option per switch "RUCKUS ICX" → unit/module/
+    port from the ifIndex (1/1/8 = 8, 1/2/1 = 65, 1/3/1 = 129, LAG3 = 3075) (2026-10-16)
+  - **CSV import/export** of switch names (agent IP → name) and port names/descriptions
+    (switch, ifIndex or port → name, description), like host aliases
+  - later: SNMP (sysName, ifName, ifAlias) — see M11
 - [x] P2 **MAC vendor (OUI)** lookup from a bundled IEEE OUI list (no network access needed)
 
 ## M8 — Grouping and L2/L3 insight (needs M6 config store; uses M7 names)

@@ -29,6 +29,17 @@ def port_ifindex(port_id: str) -> int | None:
     return (unit - 1) * 256 + (module - 1) * 64 + port
 
 
+def ifindex_port(ifindex: int) -> str | None:
+    """Reverse of port_ifindex / lag_ifindex: '1/2/1' or 'LAG3' (stacks of up to 12 units)."""
+    if 1 <= ifindex <= 12 * 256:
+        unit, rest = divmod(ifindex - 1, 256)
+        module, port = divmod(rest, 64)
+        return f"{unit + 1}/{module + 1}/{port + 1}" if module < 4 else None
+    if LAG_BASE < ifindex <= LAG_BASE + 1024:
+        return f"LAG{ifindex - LAG_BASE}"
+    return None
+
+
 def lag_ifindex(lag_id: str | int | None) -> int | None:
     try:
         n = int(str(lag_id).strip())

@@ -83,6 +83,12 @@ function InterfaceName({ i }: { i: Interface }) {
   return <EditableText value={i.name} placeholder="e.g. 1/1/48" maxLength={64} onSave={(v) => m.mutateAsync({ name: v })} />;
 }
 
+function InterfaceDescription({ i }: { i: Interface }) {
+  const m = useUpdateInterface(i.exporter_id, i.ifindex);
+  const fallback = i.controller_port && !i.controller_port.mapping_uncertain ? i.controller_port.name : null;
+  return <EditableText value={i.manual_description ?? null} placeholder={fallback ?? "e.g. Uplink core"} maxLength={64} onSave={(v) => m.mutateAsync({ description: v })} />;
+}
+
 function Interfaces({ e }: { e: Exporter }) {
   const { filters } = useFilters();
   const traffic = useTop<InterfaceTrafficItem>("top-interfaces", { ...filters, exporter: e.id }, 1000);
@@ -98,8 +104,8 @@ function Interfaces({ e }: { e: Exporter }) {
         columns={[
           { key: "ifindex", label: "ifIndex", render: (r) => <Link to={interfaceLink(r.exporter_id, r.ifindex, filters)}>{r.ifindex}</Link>, sort: (r) => r.ifindex, num: true },
           { key: "name", label: "Name", render: (r) => <InterfaceName i={r} />, sort: (r) => r.name ?? "" },
-          { key: "port", label: "Port", render: (r) => r.controller_port && !r.controller_port.mapping_uncertain ? r.controller_port.port_id : "–", sort: (r) => r.controller_port?.port_id ?? "" },
-          { key: "desc", label: "Description", render: (r) => r.description ?? "" },
+          { key: "port", label: "Port", render: (r) => r.port ?? "–", sort: (r) => r.port ?? "" },
+          { key: "desc", label: "Description", render: (r) => <InterfaceDescription i={r} />, sort: (r) => r.description ?? "" },
           { key: "lldp", label: "LLDP neighbor", render: (r) => <LldpCell i={r} />, sort: (r) => r.controller_port?.lldp_neighbor ?? "" },
           { key: "speed", label: "Speed", render: (r) => formatSpeed(r.speed_bps), sort: (r) => r.speed_bps, num: true },
           { key: "oper", label: "Oper", render: (r) => (r.oper_up === null ? "–" : r.oper_up ? <span className="badge ok">up</span> : <span className="badge bad">down</span>) },
@@ -143,6 +149,7 @@ function Settings({ e }: { e: Exporter }) {
   const m = useUpdateExporter(e.id);
   const [name, setName] = useState(e.display_name ?? "");
   const [notes, setNotes] = useState(e.notes ?? "");
+  const [icxNumbering, setIcxNumbering] = useState(e.icx_numbering ?? false);
   return (
     <Panel title="Settings">
       <div style={{ display: "grid", gap: 10, maxWidth: 520 }}>
@@ -154,8 +161,13 @@ function Settings({ e }: { e: Exporter }) {
           <span className="muted">Notes</span>
           <textarea rows={4} maxLength={2000} value={notes} onChange={(ev) => setNotes(ev.target.value)} />
         </label>
+        <label className="pick">
+          <input type="checkbox" checked={icxNumbering} onChange={(ev) => setIcxNumbering(ev.target.checked)} />
+          RUCKUS ICX switch: name the ports from the ifIndex (1/1/8, 1/2/1, LAG3)
+        </label>
+        <span className="muted" style={{ marginTop: -6, fontSize: 12 }}>Not needed when the switch is known by RUCKUS One or SmartZone.</span>
         <span className="inline-edit">
-          <button className="primary" disabled={m.isPending} onClick={() => m.mutate({ display_name: name.trim(), notes })}>Save</button>
+          <button className="primary" disabled={m.isPending} onClick={() => m.mutate({ display_name: name.trim(), notes, icx_numbering: icxNumbering })}>Save</button>
           {m.isSuccess && <span className="muted">Saved.</span>}
           {m.isError && <span className="error">{(m.error as Error).message}</span>}
         </span>

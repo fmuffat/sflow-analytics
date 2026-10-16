@@ -62,6 +62,7 @@ def get_exporter(exporter_id: str, db: Database = Depends(get_db)):
 class ExporterPatch(BaseModel):
     display_name: str | None = Field(None, max_length=64, description="Friendly name; empty string clears it")
     notes: str | None = Field(None, max_length=2000)
+    icx_numbering: bool | None = Field(None, description="name ports from the RUCKUS ICX ifIndex numbering (1/1/8)")
 
 
 @router.patch("/exporters/{exporter_id:path}", summary="Rename an exporter / edit notes")
@@ -72,6 +73,8 @@ def patch_exporter(exporter_id: str, body: ExporterPatch, db: Database = Depends
     name = (body.display_name if body.display_name is not None else e["display_name"] or "").strip()
     notes = body.notes if body.notes is not None else (e["notes"] or "")
     inventory.save_exporter_settings(db, exporter_id, name, notes)
+    if body.icx_numbering is not None:
+        inventory.set_icx_numbering(exporter_id, body.icx_numbering)
     return get_exporter(exporter_id, db)
 
 
@@ -108,6 +111,6 @@ def patch_interface(interface_id: str, body: InterfacePatch, db: Database = Depe
     if not i:
         raise HTTPException(404, "interface not found")
     name = (body.name if body.name is not None else i["name"] or "").strip()
-    desc = body.description if body.description is not None else (i["description"] or "")
+    desc = (body.description if body.description is not None else i["manual_description"] or "").strip()
     inventory.save_interface_settings(db, exporter_id, idx, name, desc)
     return inventory.interface(db, exporter_id, idx)
