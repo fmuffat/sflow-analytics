@@ -63,12 +63,17 @@ virt-customize -a "$WORK/system.qcow2" --memsize 2048 --smp 2 --no-logfile --no-
 virt-sparsify --in-place "$WORK/system.qcow2" >/dev/null
 
 echo "==> VMware disks"
-# Only the system disk is shipped. The data disk is declared without file: the hypervisor
-# creates it empty at import (an empty streamOptimized VMDK from qemu-img is rejected by the
-# ESXi NFC upload: "Error on read").
-D1="$NAME-disk1.vmdk"
+# Both disks are shipped: VirtualBox needs a file for every disk of an OVA ("Unexpected end of
+# OVA package" otherwise). The data disk holds only a short text at 1 MiB: a completely empty
+# streamOptimized VMDK is rejected by the ESXi NFC upload ("Error on read"), and the text is no
+# partition table nor file system, so sflow-setup still sees an empty disk and formats it.
+D1="$NAME-disk1.vmdk" D2="$NAME-disk2.vmdk"
 qemu-img convert -O vmdk -o subformat=streamOptimized,adapter_type=lsilogic "$WORK/system.qcow2" "$WORK/ova/$D1"
-S1=$(stat -c %s "$WORK/ova/$D1")
+qemu-img create -q -f raw "$WORK/data.raw" "${DATA_GB}G"
+printf 'sflow-analytics data disk (formatted at first boot)' | dd of="$WORK/data.raw" bs=1 seek=1048576 conv=notrunc status=none
+qemu-img convert -O vmdk -o subformat=streamOptimized,adapter_type=lsilogic "$WORK/data.raw" "$WORK/ova/$D2"
+rm -f "$WORK/data.raw"
+S1=$(stat -c %s "$WORK/ova/$D1") S2=$(stat -c %s "$WORK/ova/$D2")
 
 echo "==> OVF descriptor"
 cat > "$WORK/ova/$NAME.ovf" <<EOF
@@ -79,12 +84,13 @@ cat > "$WORK/ova/$NAME.ovf" <<EOF
   xmlns:vmw="http://www.vmware.com/schema/ovf" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <References>
     <File ovf:id="file1" ovf:href="$D1" ovf:size="$S1"/>
+    <File ovf:id="file2" ovf:href="$D2" ovf:size="$S2"/>
   </References>
   <DiskSection>
     <Info>Virtual disks</Info>
     <Disk ovf:diskId="system" ovf:fileRef="file1" ovf:capacity="$SYS_GB" ovf:capacityAllocationUnits="byte * 2^30"
       ovf:format="http://www.vmware.com/interfaces/specifications/vmdk.html#streamOptimized"/>
-    <Disk ovf:diskId="data" ovf:capacity="$DATA_GB" ovf:capacityAllocationUnits="byte * 2^30"
+    <Disk ovf:diskId="data" ovf:fileRef="file2" ovf:capacity="$DATA_GB" ovf:capacityAllocationUnits="byte * 2^30"
       ovf:format="http://www.vmware.com/interfaces/specifications/vmdk.html#streamOptimized"/>
   </DiskSection>
   <NetworkSection>
@@ -178,7 +184,7 @@ cat > "$WORK/ova/$NAME.ovf" <<EOF
 EOF
 
 echo "==> OVA"
-(cd "$WORK/ova" && for f in "$NAME.ovf" "$D1"; do echo "SHA256($f)= $(sha256sum "$f" | cut -d' ' -f1)"; done > "$NAME.mf")
-tar -C "$WORK/ova" --format=ustar -cf "$OUT/$NAME.ova" "$NAME.ovf" "$NAME.mf" "$D1"
+(cd "$WORK/ova" && for f in "$NAME.ovf" "$D1" "$D2"; do echo "SHA256($f)= $(sha256sum "$f" | cut -d' ' -f1)"; done > "$NAME.mf")
+tar -C "$WORK/ova" --format=ustar -cf "$OUT/$NAME.ova" "$NAME.ovf" "$NAME.mf" "$D1" "$D2"
 (cd "$OUT" && sha256sum "$NAME.ova" > "$NAME.ova.sha256")
 echo "==> $OUT/$NAME.ova ($(du -h "$OUT/$NAME.ova" | cut -f1))"

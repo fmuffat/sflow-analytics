@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.18.1] - 2026-10-27
+
+### Fixed
+- OVA: imports in **VirtualBox** ("Unexpected end of OVA package"): the data disk is now shipped
+  as a small file (100 GB virtual, a few MB in the OVA) instead of being declared without file.
+
 ## [0.18.0] - 2026-10-16 — Port names without a controller
 
 ### Added

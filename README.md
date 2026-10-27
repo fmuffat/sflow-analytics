@@ -39,10 +39,10 @@ Two ways, from the [latest release](https://github.com/fmuffat/sflow-analytics/r
 First sign-in to the web interface: **admin** / **sflow**; a new password is required at once
 (sign in before exposing the appliance).
 
-### Option A: VMware appliance (OVA)
+### Option A: virtual appliance (OVA)
 
 1. Deploy `sflow-analytics-<version>.ova` (ESXi 6.7 or later: *Deploy OVF Template*, thin
-   provisioning). Defaults: 4 vCPU, 8 GB RAM, system disk 30 GB, data disk 100 GB.
+   provisioning; VirtualBox 7: *File → Import Appliance*). Defaults: 4 vCPU, 8 GB RAM, system disk 30 GB, data disk 100 GB.
 2. Power it on and open the VM console: an assistant asks network (DHCP or static), host name,
    time zone, NTP and the password of the system account `sflow`, then installs everything
    (~2 minutes) and shows the URL.
