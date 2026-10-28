@@ -31,7 +31,7 @@ Persistent data (`docker compose down` keeps them, `down -v` deletes them):
 | Volume            | Content                                                          |
 |-------------------|------------------------------------------------------------------|
 | `clickhouse-data` | flows, counters, exporter inventory, device/interface names      |
-| `app-config`      | users, sessions, settings, encrypted secrets and their key, jobs |
+| `app-config`      | users, sessions, settings, encrypted secrets and their key, jobs, alerts, report definitions and generated reports |
 | `nginx-certs`     | TLS certificate and key                                          |
 
 Back up `app-config` together with `clickhouse-data`: without its `secret.key`,
@@ -58,7 +58,7 @@ for f in r/clickhouse/*.native.gz; do t=$(basename "$f" .native.gz)
   gunzip -c "$f" | docker compose exec -T clickhouse clickhouse-client --user "$CLICKHOUSE_USER"     --password "$CLICKHOUSE_PASSWORD" --query "INSERT INTO sflow.$t FORMAT Native"; done
 ```
 
-User administration: page **System → Users & sign-ins** (administrators), or the CLI
+User administration: **Administration → Users & sign-ins** (administrators), or the CLI
 `docker compose exec api python -m app.users list|create [--role viewer]|set-role|reset-password|delete`.
 Roles: `admin` (everything) and `viewer` (read-only: every analytics page, no change, no
 Administration). Every sign-in attempt (user name, address, result) is logged and kept 180 days.
@@ -68,6 +68,22 @@ never 6343, 8000, 8081, 8123, 9000 or 22. Give each person their own account (re
 they administer the appliance), watch the sign-in log, and prefer a VPN or an IP allow-list
 when possible. nginx overwrites `X-Forwarded-For` with the real client address, so login
 throttling and the sign-in log cannot be fooled by a forged header.
+
+### HTTPS certificate
+
+A self-signed certificate is created at first start. Administration → HTTPS certificate installs
+a real one: upload a PFX / PKCS#12 file or a PEM certificate and key, or generate a key and a
+certificate signing request (CSR) on the appliance and upload the signed certificate. nginx
+reloads by itself. A new self-signed certificate can be generated at any time.
+
+### Updates
+
+Installed appliances (OVA or `install.sh`) check GitHub once a day for a new release (can be
+disabled in Administration → System; nothing about the appliance is sent). An administrator sees
+"↑ x.y.z available" and can click **Update now**: the host-side updater downloads the package,
+checks its SHA-256, makes a backup, installs it and restarts the application (about one minute;
+data and settings are kept). Without Internet access, copy the new package to the host and run
+`sudo ./install.sh` from it.
 
 ### Retention and growing the disk
 
@@ -126,7 +142,9 @@ The disk guard and the "achievable retention" shown in Collector Health adapt at
 | 8000/tcp    | 127.0.0.1 (dev)     | REST API (`/api/v1/docs`)      |
 | 8081/tcp    | 127.0.0.1 (dev)     | collector status               |
 | 9000, 8123  | 127.0.0.1 (dev)     | ClickHouse native / HTTP       |
-| 443/tcp     | network (Phase 4)   | web UI and API through nginx   |
+| 443/tcp     | network             | web UI and API through nginx (HTTPS only) |
+| 161/udp     | outbound            | SNMP polling of the switches (optional) |
+| 443/tcp     | outbound            | RUCKUS One / SmartZone API, GitHub version check and updates (optional) |
 
 ## Appliance (OVA)
 
@@ -134,16 +152,23 @@ The disk guard and the "achievable retention" shown in Collector Health adapt at
 libguestfs-tools and qemu-utils) builds `sflow-analytics-<v>.ova` (~1 GB) from the official
 Ubuntu 24.04 cloud image: 4 vCPU, 8 GB, PVSCSI, VMXNET3, BIOS, hardware version 14 (ESXi 6.7+),
 system disk 30 GB and data disk 100 GB (thin). Packages are downloaded in a throw-away
-container and installed offline; the application images are bundled.
+container and installed offline; the application images are bundled. The release workflow
+builds it and attaches it to every GitHub release.
+
+Supported hypervisors: **ESXi 6.7+** (Host Client or vCenter: *Deploy OVF Template*) and
+**VirtualBox 7** (*File → Import Appliance*). Both disks are shipped in the OVA: the data disk
+is a small stream-optimized VMDK (a few MB) that holds only a marker text, so that VirtualBox
+finds a file for every disk and ESXi accepts the upload; it is formatted at first boot.
 
 At first boot, the console (tty1) runs `sflow-setup`: network (DHCP or static), host name, time
 zone, NTP, password of the system account `sflow` (no default password is shipped), then it
-grows the system disk, formats the data disk (first empty disk of 10 GB or more → `/data`,
-Docker data-root), installs the application and shows the URL and the initial admin password.
-`/etc/issue` shows the address at every boot. Console menu: log in as `sflow`, `sudo sflow-console`
-(status, network change, initial/reset admin password, restart, reboot). Unattended setup:
-`/etc/sflow/setup.conf` (template in that directory).
+grows the system disk, formats the data disk (first disk of 10 GB or more without partition
+table nor file system → `/data`, Docker data-root; without one, data stay on the system disk),
+installs the application and shows the URL. First web sign-in: `admin` / `sflow`, a new password
+is required at once. `/etc/issue` shows the address at every boot. Console menu: log in as
+`sflow`, `sudo sflow-console` (status, network change, admin password reset, restart, reboot).
+Unattended setup: `/etc/sflow/setup.conf` (template in that directory).
 
-Test note: in a TCG-only emulator (no hardware virtualization) ClickHouse refuses to start
-(needs SSSE3; use `-cpu max`); test the OVA on ESXi / Workstation.
-
+Test notes: in a TCG-only emulator (no hardware virtualization) ClickHouse refuses to start
+(needs SSSE3; use `-cpu max`); test the OVA on ESXi, Workstation or VirtualBox with VT-x. An
+import check without booting: `VBoxManage import <ova> --dry-run` then `VBoxManage import <ova>`.

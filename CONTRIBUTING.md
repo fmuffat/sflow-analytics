@@ -21,7 +21,7 @@ open https://localhost/      # self-signed certificate
 | Collector | `make test` (`make test-race`, `make fuzz`) | Go 1.25 |
 | Collector ↔ ClickHouse | `scripts/integration-test.sh` | Docker |
 | API | `scripts/api-test.sh` | Docker |
-| Web UI | `cd frontend && npm ci && npm run typecheck && npm test` | Node 22 |
+| Web UI | `cd frontend && npm ci && npm run typecheck && npm test` | Node 24 |
 | Pages render without console errors | `scripts/ui-screenshots.sh` | Docker, running stack |
 
 CI (`.github/workflows/ci.yml`) runs all of them on every pull request.

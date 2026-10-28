@@ -23,6 +23,28 @@ Pitfalls seen so far:
 - An ICX may report sub-agent ID 1, so its exporter ID looks like
   `192.0.2.2/192.0.2.2/1` (UDP source / agent address / sub-agent).
 
+### Switch and port names (optional)
+
+sFlow carries only ifIndex numbers. Names come from, in this order of priority:
+
+1. names typed in the web interface (Devices → switch → Settings / Interfaces);
+2. **RUCKUS One or SmartZone** (Administration → Integrations): switch and port names, LLDP
+   neighbors, client names;
+3. **SNMP** for the switches no controller knows (Administration → Integrations → SNMP). On the
+   ICX, a read-only community is enough:
+
+   ```
+   snmp-server community <name> ro        ! SNMP v2c, read-only
+   ```
+
+   or an SNMPv3 user with authentication (SHA) and privacy (AES) and read access, see the
+   FastIron security configuration guide. The appliance reads standard MIBs only: sysName and
+   sysDescr, IF-MIB ifName and ifAlias (`port-name`), ENTITY-MIB serial number and LLDP-MIB
+   neighbors (validated on ICX8200, FastIron 10.0.20). Allow UDP 161 from the appliance. Avoid
+   the default community `public`.
+4. the **RUCKUS ICX numbering** (per switch option): ports named 1/1/8, 1/2/1, LAG3 from the
+   ifIndex ((unit − 1) × 256 + (module − 1) × 64 + port; LAG n = 3072 + n).
+
 ### Ingress sampling
 
 ICX switches sample packets as they **enter** a port with `sflow forwarding`.

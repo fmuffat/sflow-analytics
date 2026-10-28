@@ -1,6 +1,18 @@
 # Architecture
 
-## Collector (Phases 1–2)
+```
+ICX switches ──sFlow v5 / UDP 6343──▶ collector (Go) ──▶ ClickHouse ◀── API (FastAPI) ◀── nginx HTTPS ◀── web UI (React)
+                                                             ▲              │
+RUCKUS One / SmartZone (HTTPS) ─┐                             │              │
+switches (SNMP, read-only) ─────┼──▶ worker (same image as the API) ─────────┘ ──▶ SQLite configuration store
+GitHub releases (version check)─┘        history, alerts, reports, DNS, sync, SNMP     (users, settings, secrets, jobs)
+```
+
+Services (Docker Compose): `collector`, `clickhouse`, `api`, `worker`, `frontend` (static files)
+and `nginx` (TLS, the only exposed web port). On an installed appliance a host-side `updater`
+(systemd path unit) applies in-app updates.
+
+## Collector
 
 ```
 ICX / sflow-gen ──UDP/6343──▶ UDP reader ──queue──▶ N decode workers ──▶ Fanout sink
@@ -38,20 +50,68 @@ ICX / sflow-gen ──UDP/6343──▶ UDP reader ──queue──▶ N decode
   per-packet logging except the optional rate-limited flow log sink; errors are
   rate-limited and always counted.
 
-## API (Phase 3)
+## API
 
 FastAPI (`api/`), stateless, 2 uvicorn workers. Every traffic endpoint shares
 one filter model (`app/filters.py`) that renders a WHERE clause with all user
 values bound as ClickHouse query parameters. Service, protocol name and
 exporter id are computed in SQL (`app/catalog.py`), so they can be filtered
-and grouped on. Queries run on the raw `flow_records` table; 1-minute
-aggregates will be added only if latency on 30 days of data requires it.
-Live exporter status and storage figures come from the collector's internal
-endpoint.
+and grouped on. Queries run on the raw `flow_records` table; utilization comes
+from `interface_counters` (deltas between 20 s polls) and the long-term
+comparisons from `interface_hourly`. Live exporter status and storage figures
+come from the collector's internal endpoint.
 
 Multi-switch note: a packet crossing several sampled switches is sampled by
 each of them, so totals across exporters can count it more than once. Filter
 on one exporter (or one ingress interface) for exact per-device views.
+
+### Configuration store
+
+Small transactional data live in SQLite (`sflow.db` on the `app-config` volume, schema
+migrations in `app/store.py`): users and sessions, sign-in log, settings, background jobs,
+alert rules and alerts, report definitions and generated reports (files in
+`app-config/reports/`). Secrets (controller, SMTP, webhook, SNMP) are encrypted with Fernet;
+the key is `secret.key` on the same volume, so back both up together. Names used inside
+analytics queries (aliases, groups, controller and SNMP inventory, interface names) are in
+ClickHouse so that they can be joined and filtered on.
+
+### Worker
+
+`python -m app.worker` (same image as the API) runs the jobs below; each run is recorded in
+the `jobs` table and shown in Administration → System. A failing job never stops the others.
+
+| Job | Every | Purpose |
+|-----|-------|---------|
+| `purge-expired-sessions` | 10 min | expired sessions, sign-in log older than 180 days |
+| `controller-sync` | 1 min (sync at the configured interval, 15 min) | RUCKUS One or SmartZone: switches, ports, LLDP neighbors, clients |
+| `snmp-poll` | 1 min (poll at the configured interval, 15 min) | SNMP v2c/v3 for switches no controller knows: sysName, ifName, ifAlias, ENTITY serial, LLDP |
+| `reverse-dns` | 1 min | PTR lookups of new IPs (rate-limited, cached 24 h) |
+| `alerts` | 1 min | evaluate rules, open/close alerts, send notifications |
+| `history-rollup` | 5 min | hourly interface history (`interface_hourly`, kept 3 years) |
+| `reports` | 5 min | scheduled weekly/monthly reports, e-mail, 90-day purge |
+| `update-check` | 1 h (GitHub at most once a day) | latest published release |
+
+### Enrichment priority
+
+Controller and SNMP data share the tables `ctrl_switches` / `ctrl_ports` (column `source`).
+The selected controller wins over SNMP; SNMP polls only the switches the controller does not
+know. Names shown everywhere: switch = manual > controller > SNMP `sysName` > agent IP; port =
+manual > controller > SNMP `ifName` > RUCKUS ICX numbering (per switch option) > `ifIndex N`,
+followed by the description (manual > controller / SNMP `ifAlias`).
+
+### Reports
+
+`app/reports/`: `data.py` collects one period and the previous one (and the same month a year
+before for monthly reports, from `interface_hourly`), `pdf.py` renders `template.html` with
+inline SVG charts through WeasyPrint, `xlsx.py` writes one sheet per section with openpyxl,
+`service.py` handles definitions, schedule, e-mail and history.
+
+### Updates
+
+The API never touches the host. "Update now" writes the requested version to `updates/request`;
+the host-side `packaging/updater.sh` (systemd path unit `sflow-update-<project>.path`) downloads
+the release package, checks its SHA-256, refuses downgrades, runs `backup.sh` then the new
+`install.sh`, and reports progress in `updates/status.json`.
 
 ## Docker notes
 
@@ -67,14 +127,14 @@ on one exporter (or one ingress interface) for exact per-device views.
 Synthetic generator on the same host, 20 datagrams/s per exporter, 8 flow
 samples per datagram. CPU is a percentage of one core.
 
-Phase 2, with ClickHouse inserts (60 s per step):
+With ClickHouse inserts (60 s per step):
 
 | Exporters | Samples/s | Rows inserted | Dropped | Insert failures | Collector CPU / RSS | ClickHouse CPU / RSS |
 |-----------|-----------|---------------|---------|-----------------|---------------------|----------------------|
 | 100       | 16 000    | 100 %         | 0       | 0               | ~37 % / 110 MiB     | ~25 % / 314 MiB      |
 | 500       | 80 000    | 100 %         | 0       | 0               | ~108 % / 146 MiB    | ~84 % / 453 MiB      |
 
-Phase 1 (log sink only): up to 500 exporters / 80 000 samples/s without loss,
+Log sink only (no database): up to 500 exporters / 80 000 samples/s without loss,
 ~88 % CPU, 14 MiB RSS.
 
 ## Storage sizing

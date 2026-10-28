@@ -39,7 +39,8 @@ export function Login() {
         {error && <div className="error">{error}</div>}
         <button className="primary" disabled={busy || !password}>Sign in</button>
         <div className="muted" style={{ fontSize: 11 }}>
-          First start: the initial admin password is in the API log and in <code>initial-admin-password</code> on the configuration volume.
+          First sign-in (OVA or installation package): <b>admin</b> / <b>sflow</b>, then choose a new password. Forgotten password: on the
+          appliance console <code>sudo sflow-console</code> → reset, or <code>docker compose exec api python -m app.users reset-password admin</code>.
         </div>
       </form>
       </div>

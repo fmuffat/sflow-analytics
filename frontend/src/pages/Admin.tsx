@@ -11,6 +11,7 @@ import { UsersAdmin } from "./Users";
 import { DnsPanel } from "./Hosts";
 import { ChangePassword } from "./Login";
 import { EnrichmentPanel } from "../components/Enrichment";
+import { SnmpPanel } from "../components/Snmp";
 import { NotificationsPanel } from "../components/Notifications";
 import { formatBytes, formatCount, formatTime } from "../lib/format";
 
@@ -56,6 +57,7 @@ export function Admin() {
       {tab === "integrations" && (
         <div style={{ display: "grid", gap: 12 }}>
           <EnrichmentPanel />
+          <SnmpPanel />
           <DnsPanel />
         </div>
       )}

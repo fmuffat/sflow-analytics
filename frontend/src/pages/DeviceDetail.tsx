@@ -134,7 +134,7 @@ function Stats({ e }: { e: Exporter }) {
         <dt>Sampling rate</dt><dd>1:{formatCount(e.sample_rate)}</dd>
         {e.controller && (
           <>
-            <dt>Controller</dt><dd>{e.controller.source === "ruckusone" ? "RUCKUS One" : e.controller.source} · synced {formatTime(e.controller.synced_at)}</dd>
+            <dt>{e.controller.source === "snmp" ? "Source" : "Controller"}</dt><dd>{({ ruckusone: "RUCKUS One", smartzone: "SmartZone", snmp: "SNMP" } as Record<string, string>)[e.controller.source] ?? e.controller.source} · {e.controller.source === "snmp" ? "polled" : "synced"} {formatTime(e.controller.synced_at)}</dd>
             <dt>Name / model</dt><dd>{e.controller.name} · {e.controller.model}</dd>
             <dt>Serial / firmware</dt><dd>{e.controller.serial} · {e.controller.firmware}</dd>
             <dt>Status / venue</dt><dd>{e.controller.status} · {e.controller.venue}</dd>
@@ -165,7 +165,7 @@ function Settings({ e }: { e: Exporter }) {
           <input type="checkbox" checked={icxNumbering} onChange={(ev) => setIcxNumbering(ev.target.checked)} />
           RUCKUS ICX switch: name the ports from the ifIndex (1/1/8, 1/2/1, LAG3)
         </label>
-        <span className="muted" style={{ marginTop: -6, fontSize: 12 }}>Not needed when the switch is known by RUCKUS One or SmartZone.</span>
+        <span className="muted" style={{ marginTop: -6, fontSize: 12 }}>Not needed when the switch is known by RUCKUS One, SmartZone or SNMP.</span>
         <span className="inline-edit">
           <button className="primary" disabled={m.isPending} onClick={() => m.mutate({ display_name: name.trim(), notes, icx_numbering: icxNumbering })}>Save</button>
           {m.isSuccess && <span className="muted">Saved.</span>}

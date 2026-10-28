@@ -83,7 +83,7 @@ The repository must be publishable at any time without cleanup. No remote/push u
     port from the ifIndex (1/1/8 = 8, 1/2/1 = 65, 1/3/1 = 129, LAG3 = 3075) (2026-10-16)
   - **CSV import/export** of switch names (agent IP → name) and port names/descriptions
     (switch, ifIndex or port → name, description), like host aliases
-  - later: SNMP (sysName, ifName, ifAlias) — see M11
+  - [x] SNMP (sysName, ifName, ifAlias, LLDP) — see M11
 - [x] P2 **MAC vendor (OUI)** lookup from a bundled IEEE OUI list (no network access needed)
 
 ## M8 — Grouping and L2/L3 insight (needs M6 config store; uses M7 names)
@@ -163,7 +163,8 @@ The repository must be publishable at any time without cleanup. No remote/push u
 - [ ] Capacity forecast ("uplink reaches 80 % in 3 months")
 - [ ] Integrations: Grafana data source, flow/alert forwarding to a SIEM
 - [ ] Editable service catalog (table + API)
-- [ ] SNMPv2c enrichment for sites without SmartZone/R1 (spec §18)
+- [x] SNMP v2c / v3 enrichment for switches no controller knows (2026-10-28; asked by a beta user)
+  - [x] validated on an ICX8200 (FastIron 10.0.20b): ifName "ethernet 1/1/8", "lag 1"; LLDP localPortNum = ifIndex
 - [ ] OVA appliance packaging (spec Phase 7) — once the Docker stack is stable
 - [ ] Out of scope unless requested: scan/DDoS detection (spec non-goals)
 

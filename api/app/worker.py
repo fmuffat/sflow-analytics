@@ -67,6 +67,29 @@ def controller_sync() -> str | None:
     return f"{r['switches']} switches, {r['ports']} ports, {r['lldp_neighbors']} LLDP neighbors, {r['clients']} clients"
 
 
+@job("snmp-poll", every=60)
+def snmp_poll() -> str:
+    """Names, descriptions and LLDP neighbors of the switches no controller knows (SNMP)."""
+    from .db import get_db
+    from .enrichment import snmp
+
+    if not snmp.due():
+        last = snmp.last_poll()
+        if not snmp.get_config()["enabled"]:
+            return "disabled"
+        return "waiting · last poll " + (("ok" if last.get("ok") else f"failed: {last.get('error', '?')}") if last else "none")
+    r = snmp.run_poll(get_db())
+    if r.get("error"):
+        raise RuntimeError(r["error"])
+    out = f"{r['switches']}/{r['targets']} switch(es), {r['ports']} interfaces, {r['lldp_neighbors']} LLDP neighbors"
+    if r["errors"]:
+        msg = out + " · no answer from " + ", ".join(f"{ip} ({e[:80]})" for ip, e in r["errors"].items())
+        if not r["switches"]:
+            raise RuntimeError(msg)
+        return msg
+    return out
+
+
 @job("reverse-dns", every=60)
 def reverse_dns() -> str:
     from . import rdns

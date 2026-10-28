@@ -27,14 +27,17 @@ command -v docker >/dev/null || { echo "docker is required (package download)" >
 
 mkdir -p "$WORK" "$OUT"
 echo "==> Base image"
-if [ ! -s "$WORK/$BASE_IMG" ]; then
+# Ubuntu republishes the release image from time to time: a cached copy whose checksum no longer
+# matches SHA256SUMS is downloaded again (once).
+SUMS="$(curl -fsSL "$BASE_URL/SHA256SUMS" | grep " \*\?$BASE_IMG\$" | sed "s| \*\?$BASE_IMG| $WORK/$BASE_IMG|")"
+if [ ! -s "$WORK/$BASE_IMG" ] || ! echo "$SUMS" | sha256sum -c --status -; then
   curl -fsSL -o "$WORK/$BASE_IMG.part" "$BASE_URL/$BASE_IMG"
   mv "$WORK/$BASE_IMG.part" "$WORK/$BASE_IMG"
 fi
-curl -fsSL "$BASE_URL/SHA256SUMS" | grep " \*\?$BASE_IMG\$" | sed "s| \*\?$BASE_IMG| $WORK/$BASE_IMG|" | sha256sum -c -
+echo "$SUMS" | sha256sum -c -
 
 echo "==> Packages: $PACKAGES"
-mkdir -p "$WORK/debs"
+mkdir -p "$WORK/debs" && rm -f "$WORK/debs"/*.deb
 # Empty dpkg status: the whole dependency closure is downloaded, so that the offline install
 # also finds the newer libraries some packages need (the cloud image may be older).
 docker run --rm -v "$WORK/debs:/out" ubuntu:24.04 bash -c "apt-get update -qq && touch /tmp/empty && apt-get install -y -qq --download-only --no-install-recommends -o Dir::State::status=/tmp/empty $PACKAGES >/dev/null && cp /var/cache/apt/archives/*.deb /out/ && chmod 644 /out/*.deb"

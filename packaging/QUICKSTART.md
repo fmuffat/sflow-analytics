@@ -48,7 +48,7 @@ and uplinks). Data appears in the web interface within a minute.
 | Logs | `sudo docker compose logs -f collector` |
 | Restart | `sudo docker compose restart` |
 | Backup | `sudo ./backup.sh` (archive with data, users, settings, certificate) |
-| Upgrade | extract the new package, `sudo ./install.sh` (data kept) |
+| Upgrade | Administration → System → **Update now** (backup first), or extract the new package and run `sudo ./install.sh` (data kept) |
 | Change retention, ports... | edit `.env`, then `sudo docker compose up -d` |
 | Uninstall | `sudo ./uninstall.sh` (data kept) / `sudo ./uninstall.sh --purge` |
 | Forgotten admin password | `sudo docker compose exec api python -m app.users reset-password admin` |

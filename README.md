@@ -24,12 +24,15 @@ with no license, no agent and no extra hardware: the switches already export sFl
 - **Reports**: weekly and monthly PDF and Excel reports (monitored links, busiest ports,
   applications, talkers, trends, alerts), e-mailed and kept 90 days; "Report now" on any period.
 - **RUCKUS One or SmartZone integration** (optional, read-only): switch and port names, LLDP
-  neighbors, client names.
+  neighbors, client names. Standalone switches: **SNMP** v2c / v3 polling (sysName, ifName,
+  ifAlias, LLDP), or port names from the ICX numbering.
 - **Names everywhere**: host aliases (IP, MAC, subnet), reverse DNS, MAC vendors (bundled IEEE
   registry), IP and interface groups.
-- **Multi-user**: administrators and read-only accounts, sign-in log, HTTPS only.
-- **Appliance-friendly**: one-command offline install, 90 days of detailed data by default,
-  automatic disk protection, backup script.
+- **Multi-user**: administrators and read-only accounts, sign-in log, HTTPS only, your own
+  certificate (PFX, PEM or CSR generated on the appliance).
+- **Appliance-friendly**: OVA for ESXi and VirtualBox or one-command offline install, **updates
+  from the web interface** (backup first), 90 days of detailed data by default, automatic disk
+  protection, backup script.
 
 ![Flow map](docs/images/flow-map.png)
 
@@ -42,7 +45,8 @@ First sign-in to the web interface: **admin** / **sflow**; a new password is req
 ### Option A: virtual appliance (OVA)
 
 1. Deploy `sflow-analytics-<version>.ova` (ESXi 6.7 or later: *Deploy OVF Template*, thin
-   provisioning; VirtualBox 7: *File → Import Appliance*). Defaults: 4 vCPU, 8 GB RAM, system disk 30 GB, data disk 100 GB.
+   provisioning; VirtualBox 7: *File → Import Appliance*). Defaults: 4 vCPU, 8 GB RAM, system
+   disk 30 GB, data disk 100 GB.
 2. Power it on and open the VM console: an assistant asks network (DHCP or static), host name,
    time zone, NTP and the password of the system account `sflow`, then installs everything
    (~2 minutes) and shows the URL.
@@ -61,9 +65,14 @@ tar xzf sflow-analytics-*.tar.gz && cd sflow-analytics-*/ && sudo ./install.sh
 ```
 
 The script installs Docker if needed, loads the images, generates the configuration and prints
-the URL. No switch at hand? `sudo ./install.sh --demo` simulates 5 switches. Upgrade: extract the
-new package and run `sudo ./install.sh` again (data and settings are kept). Everyday commands,
+the URL. No switch at hand? `sudo ./install.sh --demo` simulates 5 switches. Everyday commands,
 backup and uninstall: [packaging/QUICKSTART.md](packaging/QUICKSTART.md).
+
+### Upgrade
+
+Administration → System shows when a new release is published: **Update now** makes a backup,
+installs it and restarts the application (about one minute; data and settings are kept). Without
+Internet access: extract the new package on the host and run `sudo ./install.sh` again.
 
 ### Send sFlow
 
@@ -77,7 +86,9 @@ interface ethernet 1/1/1 to 1/1/48
 ```
 
 `sflow enable` is required. For small or quiet networks add `sflow sample 512` (the default
-sampling rate gives few samples). More in [docs/sflow.md](docs/sflow.md).
+sampling rate gives few samples). Switch and port names come from RUCKUS One / SmartZone, from
+SNMP (`snmp-server community <name> ro`, or SNMPv3) or can be typed in. More in
+[docs/sflow.md](docs/sflow.md).
 
 ![Traffic Explorer](docs/images/traffic-explorer.png)
 
@@ -100,7 +111,7 @@ disk and grow it at any time: [docs/deployment.md](docs/deployment.md).
 ```
 ICX switches ──sFlow v5 / UDP 6343──▶ collector (Go) ──▶ ClickHouse ──▶ API (FastAPI) ──▶ web UI (React)
                                                                  ▲           │              behind nginx HTTPS
-                                       worker: history, alerts, reports, DNS, RUCKUS One / SmartZone sync
+                                 worker: history, alerts, reports, DNS, RUCKUS One / SmartZone sync, SNMP
 ```
 
 Traffic volumes are **estimates** (sampled packet size × sampling rate), as with any
@@ -110,7 +121,7 @@ Details: [docs/architecture.md](docs/architecture.md), REST API: [docs/api.md](d
 
 ## Development
 
-Requirements: Docker with Compose v2 (Go 1.25+, Python 3.12 and Node 22 only to run tests outside
+Requirements: Docker with Compose v2 (Go 1.25+, Python 3.14 and Node 24 only to run tests outside
 containers). See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md).
 
 ```bash
@@ -126,7 +137,7 @@ scripts/build-package.sh   # offline installation package in dist/
 | Directory | Content |
 |-----------|---------|
 | `collector/` | Go collector: UDP listener, sFlow decoding, exporter discovery, ClickHouse sink, disk guard, synthetic sender |
-| `api/` | FastAPI service and background worker (alerts, reports, history, DNS, controller sync) |
+| `api/` | FastAPI service and background worker (alerts, reports, history, DNS, controller sync, SNMP) |
 | `frontend/` | React + TypeScript web UI |
 | `nginx/` | HTTPS reverse proxy |
 | `packaging/` | offline installer (`install.sh`, compose file, quick start) |

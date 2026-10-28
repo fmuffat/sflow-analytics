@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from ..db import Database, get_db
-from ..enrichment import sync
+from ..enrichment import snmp, sync
 from ..enrichment.ruckusone import REGIONS
 
 router = APIRouter(prefix="/admin/enrichment", tags=["administration"])
@@ -62,3 +62,52 @@ def test():
 @router.post("/sync", summary="Synchronize the controller inventory now")
 def sync_now(db: Database = Depends(get_db)):
     return sync.run_sync(db)
+
+
+class SnmpV3(BaseModel):
+    username: str | None = Field(None, max_length=64)
+    auth_protocol: Literal["SHA", "SHA-256", "SHA-512", "MD5"] | None = None
+    auth_key: str | None = Field(None, max_length=128, description="write-only; empty keeps the stored key")
+    priv_protocol: Literal["AES", "AES-256", "DES", "none"] | None = None
+    priv_key: str | None = Field(None, max_length=128, description="write-only; empty keeps the stored key")
+
+
+class SnmpSettings(BaseModel):
+    enabled: bool | None = None
+    version: Literal["v2c", "v3"] | None = None
+    port: int | None = Field(None, ge=1, le=65535)
+    timeout: float | None = Field(None, ge=0.5, le=10)
+    interval_minutes: int | None = Field(None, ge=5, le=1440)
+    community: str | None = Field(None, max_length=128, description="write-only; empty keeps the stored community")
+    v3: SnmpV3 | None = None
+
+
+@router.get("/snmp", summary="SNMP polling settings (secrets never returned), targets and last poll")
+def get_snmp(db: Database = Depends(get_db)):
+    return {**snmp.get_config(), "targets": snmp.targets(db), "last_poll": snmp.last_poll()}
+
+
+@router.put("/snmp", summary="Update SNMP polling settings")
+def put_snmp(body: SnmpSettings, db: Database = Depends(get_db)):
+    try:
+        snmp.save_config(body.model_dump(exclude_none=True))
+    except snmp.SnmpError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    return get_snmp(db)
+
+
+class SnmpTest(BaseModel):
+    ip: str | None = Field(None, max_length=45, pattern=r"^[0-9A-Fa-f.:]*$")
+
+
+@router.post("/snmp/test", summary="Test SNMP on one switch (default: the first target); nothing written")
+def test_snmp(body: SnmpTest, db: Database = Depends(get_db)):
+    try:
+        return snmp.test(db, body.ip or None)
+    except snmp.SnmpError as exc:
+        raise HTTPException(400, str(exc)) from exc
+
+
+@router.post("/snmp/poll", summary="Poll the switches now")
+def poll_snmp(db: Database = Depends(get_db)):
+    return snmp.run_poll(db)

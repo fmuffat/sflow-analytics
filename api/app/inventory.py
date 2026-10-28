@@ -23,22 +23,25 @@ def _source() -> str:
         return "none"
 
 
-def _safe_src(db: Database, sql: str) -> list[dict[str, Any]]:
-    """Controller rows of the selected source. The tables may not exist yet
-    (collector not upgraded): no enrichment then."""
-    src = _source()
-    if src == "none":
+def _safe_src(db: Database, sql: str, include_snmp: bool = True) -> list[dict[str, Any]]:
+    """Rows of the selected controller and of SNMP polling (switches the controller does not
+    know), SNMP rows first so that controller rows win when both exist. The tables may not
+    exist yet (collector not upgraded): no enrichment then."""
+    srcs = ([] if _source() == "none" else [_source()]) + (["snmp"] if include_snmp else [])
+    if not srcs:
         return []
     try:
-        return db.query(sql, {"src": src})
+        rows = db.query(sql, {"srcs": srcs})
     except Exception:  # noqa: BLE001
         return []
+    return sorted(rows, key=lambda r: r.get("source") != "snmp")
 
 
-def controller_switches(db: Database) -> dict[str, dict[str, Any]]:
-    """Latest controller switches by management IP."""
+def controller_switches(db: Database, include_snmp: bool = True) -> dict[str, dict[str, Any]]:
+    """Latest controller (or SNMP) switches by management IP."""
     rows = _safe_src(db, f"""SELECT source, serial, name, model, firmware, ip, mac, venue, status, synced_at
-                          FROM {db.name}.ctrl_switches FINAL WHERE ip != '' AND source = {{src:String}}""")
+                          FROM {db.name}.ctrl_switches FINAL WHERE ip != '' AND source IN {{srcs:Array(String)}}""",
+                     include_snmp)
     return {r["ip"]: r for r in rows}
 
 
@@ -47,14 +50,14 @@ def host_names(db: Database) -> dict[str, str]:
     Later: manual aliases (priority) and reverse DNS (fallback)."""
     # Alias must differ from the column name, or WHERE would refer to the aggregate.
     rows = _safe_src(db, f"""SELECT ip, argMax(name, synced_at) AS host_name FROM {db.name}.ctrl_clients FINAL
-                          WHERE ip != '' AND name != '' AND source = {{src:String}} GROUP BY ip""")
+                          WHERE ip != '' AND name != '' AND source IN {{srcs:Array(String)}} GROUP BY ip""", False)
     return {r["ip"]: r["host_name"] for r in rows}
 
 
 def controller_ports(db: Database) -> dict[tuple[str, int], dict[str, Any]]:
-    rows = _safe_src(db, f"""SELECT switch_serial, port_id, ifindex, name, status, admin_status, speed, vlan_untagged,
-                                lag_name, lldp_name, lldp_mac, lldp_port_mac, synced_at
-                         FROM {db.name}.ctrl_ports FINAL WHERE ifindex > 0 AND source = {{src:String}}""")
+    rows = _safe_src(db, f"""SELECT source, switch_serial, port_id, ifindex, name, status, admin_status, speed,
+                                vlan_untagged, lag_name, lldp_name, lldp_mac, lldp_port_mac, synced_at
+                         FROM {db.name}.ctrl_ports FINAL WHERE ifindex > 0 AND source IN {{srcs:Array(String)}}""")
     return {(r["switch_serial"], r["ifindex"]): r for r in rows}
 
 

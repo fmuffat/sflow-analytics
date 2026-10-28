@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.19.0] - 2026-10-28 — SNMP for standalone switches
+
+### Added
+- **SNMP polling** for switches that no controller knows (standalone ICX): Administration →
+  Integrations → SNMP, v2c (community) or v3 (SHA/SHA-256/SHA-512/MD5, AES/AES-256/DES), test
+  button, poll every 15 minutes (worker job `snmp-poll`). Reads standard MIBs only: sysName and
+  sysDescr (name, model, firmware), ifName and ifAlias (port and description), ENTITY-MIB serial,
+  LLDP neighbors. Shown like controller data (switch name, "1/1/8 Uplink", LLDP column); RUCKUS
+  One / SmartZone data win when a switch is known by both. Secrets encrypted at rest.
+
+### Fixed
+- Sign-in page: the hint now gives the first sign-in (admin / sflow) instead of an obsolete
+  "password in the API log" note, and how to reset a forgotten password.
+- OVA build: a cached Ubuntu base image that no longer matches the published checksum is
+  downloaded again; stale package files are removed before the offline download.
+
+### Changed
+- API image on **Python 3.14**; web interface built with **Node 24 LTS**.
+- Dependencies: FastAPI 0.156.0, pydantic 2.14.1, clickhouse-connect 1.11.0, dnspython 2.9.0,
+  clickhouse-go 2.49.0, React 19.3.1, TanStack Query 5.104.5, Vite 8.3.4, Vitest 5.0.5.
+
 ## [0.18.1] - 2026-10-27
 
 ### Fixed
